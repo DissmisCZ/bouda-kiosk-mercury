@@ -68,6 +68,37 @@
   </div>
 
   <button id="installBtn">Instalovat</button>
+  
+<script>
+/* ============== 1) ZAMKNOUT ZPĚT ============== */
+function lockBackButton() {
+  // vlož jednu historii a při pokusu o "Zpět" ji hned vrátíme
+  history.pushState(null, '', location.href);
+  window.addEventListener('popstate', () => {
+    history.pushState(null, '', location.href);
+  });
+}
+window.addEventListener('load', lockBackButton);
+
+/* ============== 2) DRŽET FULLSCREEN ============== */
+async function ensureFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch (_) {}
+}
+// kdykoliv se appka znovu objeví v popředí, zkus fullscreen
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') ensureFullscreen();
+});
+
+/* ============== 3) RE-LOCK PO REFRESHI/RELAUNCHI ============== */
+// na některých zařízeních se po minimalizaci/obnovení historie resetne
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) lockBackButton(); // návrat z BFCache
+});
+</script>
 
 <script>
 /*** Webhook ***/
