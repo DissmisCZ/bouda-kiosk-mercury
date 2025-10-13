@@ -70,34 +70,79 @@
   <button id="installBtn">Instalovat</button>
   
 <script>
-/* ============== 1) ZAMKNOUT ZPĚT ============== */
-function lockBackButton() {
-  // vlož jednu historii a při pokusu o "Zpět" ji hned vrátíme
-  history.pushState(null, '', location.href);
-  window.addEventListener('popstate', () => {
-    history.pushState(null, '', location.href);
+/* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
+
+/* 0) Pomocný flag pro PWA (instalovaná vs. prohlížeč) */
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || (window.navigator.standalone === true);
+
+/* 1) Vynucený hash, aby historie měla co „držet“ */
+(function ensureHash(){
+  if (!location.hash) {
+    history.replaceState(null, '', location.pathname + '#home');
+  }
+})();
+
+/* 2) Pevné „vycpání“ historie (2 položky) a tvrdé vracení vpřed */
+function hardenBackLock() {
+  try {
+    if (!sessionStorage.getItem('backArmed')) {
+      history.pushState({b:1}, '');
+      history.pushState({b:2}, '');
+      sessionStorage.setItem('backArmed','1');
+    }
+  } catch(_) {}
+  window.addEventListener('popstate', (e)=>{
+    // nedovolit odejít zpět – skoč rovnou dopředu
+    try { history.go(1); } catch(_) {}
+    // pro jistotu historii zase „dotuč“
+    try { history.pushState({b:3}, ''); } catch(_) {}
   });
 }
-window.addEventListener('load', lockBackButton);
+window.addEventListener('load', hardenBackLock);
 
-/* ============== 2) DRŽET FULLSCREEN ============== */
+/* 3) Držet fullscreen vždy, když se appka zviditelní */
 async function ensureFullscreen() {
   try {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
     }
-  } catch (_) {}
+  } catch(_) {}
 }
-// kdykoliv se appka znovu objeví v popředí, zkus fullscreen
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') ensureFullscreen();
 });
-
-/* ============== 3) RE-LOCK PO REFRESHI/RELAUNCHI ============== */
-// na některých zařízeních se po minimalizaci/obnovení historie resetne
-window.addEventListener('pageshow', (e) => {
-  if (e.persisted) lockBackButton(); // návrat z BFCache
+window.addEventListener('pageshow', () => {
+  // po návratu z BFCache znovu vycpeme historii a fullscreen
+  hardenBackLock();
+  ensureFullscreen();
 });
+
+/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
+      rychle a potichu obnov domovskou obrazovku */
+let lastUserTick = performance.now();
+document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
+document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
+
+function softRecover(){
+  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
+  if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
+    if (!location.hash || location.hash !== '#home') {
+      history.replaceState(null, '', location.pathname + '#home');
+    }
+    hardenBackLock();
+    ensureFullscreen();
+  }
+}
+document.addEventListener('visibilitychange', softRecover);
+setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
+
+/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Backspace' || e.key === 'Escape') {
+    e.preventDefault();
+  }
+}, {passive:false});
 </script>
 
 <script>
@@ -106,7 +151,7 @@ const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxKT5x3dK3TIe77wfnG
 
 /*** UX parametry ***/
 const COOLDOWN_MS = 5000;
-const THANKS_MS   = 1200;
+const THANKS_MS   = 5000;
 
 /*** Outbox (tichý) ***/
 const BOX_KEY = "bouda_outbox_pwa";
