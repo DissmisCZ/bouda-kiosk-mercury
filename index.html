@@ -7,8 +7,6 @@
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    /* ========== Moderní kiosk UI – pouze design (bez změn logiky) ========== */
-
     /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
     html, body, * {
       -webkit-user-select: none !important;
@@ -21,225 +19,44 @@
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      --tile: clamp(130px, 19vmin, 240px);
-      --gap: clamp(14px, 2.2vmin, 26px);
-      --radius: clamp(16px, 2.4vmin, 24px);
-
-      /* Barvy */
-      --bg:#070707; 
-      --text:#ffffff; 
-      --muted:#bfc0c9; 
-      --accent:#ffb255;  /* teplejší akcent */
-      --tile-bg:#101010; 
-      --tile-bg-hover:#141414; 
-      --tile-border: #232323;
-      --tile-border-strong: #2b2b2b;
-      --glow:#ffb25522;
-
-      /* Stíny */
-      --shadow-soft: 0 8px 24px rgba(0,0,0,.55);
-      --shadow-hard: 0 2px 0 rgba(255,255,255,.03) inset, 0 1px 0 rgba(0,0,0,.6);
+      --tile: clamp(120px, 18vmin, 220px);
+      --gap: clamp(12px, 2vmin, 24px);
+      --radius: clamp(14px, 2.2vmin, 22px);
+      --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
+      --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
     }
-
-    /* Základ */
-    html,body{
-      height:100%;
-      margin:0;
-      background: var(--bg);
-      color:var(--text);
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
-    }
-    /* Dynamické pozadí – jemná animace */
-    body{
-      display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
-    }
-    body::before{
-      content:"";
-      position:fixed; inset: -20vmax;
-      background:
-        radial-gradient(1200px 1200px at 15% 10%, #ffb25510, transparent 60%),
-        radial-gradient(1000px 1000px at 85% 80%, #ff7a3d12, transparent 60%),
-        radial-gradient(900px 900px at 60% 30%, #f0a34410, transparent 60%),
-        linear-gradient(180deg, #0b0b0b, #070707 40%, #0a0a0a);
-      filter: blur(0.2px);
-      animation: bgFloat 22s ease-in-out infinite alternate;
-      pointer-events:none; z-index:-2;
-    }
-    body::after{
-      /* velmi jemný šum pro strukturu */
-      content:"";
-      position:fixed; inset:0;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/ filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
-      opacity:.18; mix-blend-mode:soft-light; pointer-events:none; z-index:-1;
-    }
-    @keyframes bgFloat{
-      0% { transform: translate3d(0,0,0) scale(1); }
-      100%{ transform: translate3d(-2%, -2%, 0) scale(1.02); }
-    }
-
-    .container{
-      width:min(1400px,96vw);
-      padding:clamp(12px,3.4vmin,44px);
-      display:grid;
-      grid-template-rows:auto auto 1fr;
-      row-gap:clamp(10px,1.8vmin,18px);
-      justify-items:center;text-align:center;
-    }
-
-    /* Brand – musí být největší text na stránce */
-    .brand{
-      text-transform:uppercase;letter-spacing:.22em;font-weight:900;
-      font-size:clamp(28px,8.4vmin,92px); /* větší než H1 */
-      background: linear-gradient(92deg, #ffcf8a 0%, #f0a344 38%, #ff7a3d 100%);
-      -webkit-background-clip:text;background-clip:text;color:transparent;
-      text-shadow: 0 0 36px var(--glow);
-    }
-
-    h1{
-      margin:.08em 0 0;font-weight:900;
-      font-size:clamp(32px,7.4vmin,78px);
-      line-height:1.04; letter-spacing:-.02em;
-      text-shadow: 0 8px 24px rgba(0,0,0,.5);
-    }
-
-    .sub{
-      margin:.25em 0 0;color:var(--muted);
-      font-size:clamp(17px,3.2vmin,30px);
-      opacity:.9;
-    }
-
-    .grid{
-      margin-top:clamp(16px,2.6vmin,26px);
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
-      gap:var(--gap); width:100%; place-items:center;
-    }
-    .cell{
-      display:flex;flex-direction:column;align-items:center;
-      gap:clamp(6px,1.2vmin,12px);
-    }
-
-    /* Dlaždice – 3D, plynulé, moderní */
-    .btn{
-      width:var(--tile); height:var(--tile);
-      border:none; cursor:pointer; border-radius:var(--radius);
-      background:
-        linear-gradient(180deg, #131313, #0f0f0f);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,.06) inset,
-        0 -1px 0 rgba(0,0,0,.5) inset,
-        0 14px 30px rgba(0,0,0,.6);
-      outline: none;
-      display:grid; place-items:center;
-      transition: transform .12s ease, box-shadow .18s ease, background .2s ease, filter .2s ease;
-      will-change: transform, box-shadow, filter;
-      position:relative;
-      border:1px solid var(--tile-border);
-    }
-    .btn::after{
-      /* jemný „shine“ při hoveru */
-      content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,.07) 50%, transparent 65%);
-      transform: translateX(-120%);
-      transition: transform .6s ease;
-      pointer-events:none; border-radius:inherit;
-    }
-    .btn:hover{
-      background: var(--tile-bg-hover);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,.08) inset,
-        0 -1px 0 rgba(0,0,0,.55) inset,
-        0 18px 38px rgba(0,0,0,.66),
-        0 0 0 1px var(--tile-border-strong);
-      transform: translateY(-2px) scale(1.02);
-      filter: drop-shadow(0 0 18px var(--glow));
-    }
-    .btn:hover::after{ transform: translateX(120%); }
-    .btn:active{
-      transform: translateY(0) scale(.98);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,.05) inset,
-        0 -1px 0 rgba(0,0,0,.7) inset,
-        0 8px 18px rgba(0,0,0,.7);
-    }
-    .btn:focus-visible{
-      outline: 2px solid #ffb255aa;
-      outline-offset: 3px;
-    }
-
-    .emoji{
-      font-size:calc(var(--tile) * .58);
-      line-height:1; transform: translateZ(0);
-      transition: transform .18s ease;
-      will-change: transform;
-    }
-    .btn:hover .emoji{ transform: translateY(-2px) scale(1.06); }
-    .btn:active .emoji{ transform: translateY(1px) scale(.98); }
-
-    .label{
-      color:var(--muted);
-      font-size:clamp(14px,2.1vmin,20px);
-      white-space:nowrap; opacity:.95;
-      transition: opacity .2s ease, transform .2s ease;
-    }
-    .cell:hover .label{ opacity:1; transform: translateY(-1px); }
-
-    /* Overlay „Děkujeme“ – větší a s pružnou animací */
-    .overlay{
-      position:fixed; inset:0; display:grid; place-items:center;
-      background:rgba(0,0,0,.62);
-      opacity:0; pointer-events:none; transition:opacity .16s ease;
-    }
-    .overlay.show{ opacity:1; pointer-events:auto; }
-
-    .thanks{
-      font-size:clamp(36px,8.2vmin,86px); /* větší než dřív */
-      padding:clamp(12px,1.8vmin,20px) clamp(18px,2.8vmin,32px);
-      border-radius: calc(var(--radius) + 6px);
-      color:#ffe7cd;
-      border:1px solid rgba(240,163,68,.7);
-      background:
-        linear-gradient(180deg, #1b1405, #120c02);
-      box-shadow:
-        0 0 0 1px rgba(240,163,68,.28) inset,
-        0 18px 42px rgba(0,0,0,.65),
-        0 0 48px #f0a34422;
-      transform: scale(.94) translateY(8px);
-      opacity:0;
-      transition: transform .18s ease, opacity .18s ease;
-      animation: none;
-    }
-    .overlay.show .thanks{
-      opacity:1; transform: scale(1) translateY(0);
-      animation: popSpring .6s cubic-bezier(.2,.8,.2,1) 1;
-    }
-    @keyframes popSpring{
-      0%{ transform: scale(.88); }
-      55%{ transform: scale(1.06); }
-      100%{ transform: scale(1); }
-    }
-
-    /* Tlačítko Instalovat – decentní peleta v rohu */
-    #installBtn{
-      position:fixed; right:12px; bottom:12px;
-      padding:10px 14px; border-radius:12px;
-      border:1px solid #2a2a2a; background:#101010; color:#fff;
-      font-size:14px; display:none;
-      box-shadow: 0 10px 24px rgba(0,0,0,.4);
-      transition: transform .14s ease, box-shadow .2s ease, background .2s ease;
-    }
-    #installBtn:hover{
-      background:#141414; transform: translateY(-1px);
-      box-shadow: 0 14px 30px rgba(0,0,0,.5);
-    }
-    #installBtn:active{ transform: translateY(0); }
-
-    /* Preferuje-li uživatel méně pohybu, ztišíme animace */
-    @media (prefers-reduced-motion: reduce){
-      *{ animation:none !important; transition:none !important; }
-      body::before{ animation:none; }
-    }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+              font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+    body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .container{width:min(1400px,96vw);padding:clamp(10px,3vmin,40px);display:grid;
+               grid-template-rows:auto auto 1fr;row-gap:clamp(8px,1.6vmin,16px);
+               justify-items:center;text-align:center}
+    .brand{color:var(--accent);text-transform:uppercase;letter-spacing:.2em;
+           font-weight:800;font-size:clamp(28px,8vmin,92px)}
+    h1{margin:.1em 0 0;font-weight:800;font-size:clamp(28px,6.2vmin,64px);line-height:1.06}
+    .sub{margin:.2em 0 0;color:var(--muted);font-size:clamp(16px,3vmin,28px)}
+    .grid{margin-top:clamp(12px,2.2vmin,24px);display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
+          gap:var(--gap);width:100%;place-items:center}
+    .cell{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vmin,12px)}
+    .btn{width:var(--tile);height:var(--tile);border:none;cursor:pointer;border-radius:var(--radius);
+         background:var(--tile-bg);box-shadow:0 0 0 1px var(--tile-border);
+         display:grid;place-items:center;transition:transform .06s ease,background .15s,box-shadow .15s;
+         will-change:transform}
+    .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
+    .btn:active{transform:scale(.965)}
+    .emoji{font-size:calc(var(--tile) * .55);line-height:1}
+    .label{color:var(--muted);font-size:clamp(14px,1.9vmin,20px);white-space:nowrap}
+    .overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.62);
+             opacity:0;pointer-events:none;transition:opacity .12s ease}
+    .overlay.show{opacity:1;pointer-events:auto}
+    .thanks{font-size:clamp(26px,4.8vmin,56px);
+            padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
+            border-radius:var(--radius);color:#ffe6c7;border:1px solid rgba(240,163,68,.6);
+            background:#161002;transform:scale(.96);opacity:0;transition:transform .12s,opacity .12s}
+    .overlay.show .thanks{transform:scale(1);opacity:1}
+    #installBtn{position:fixed;right:12px;bottom:12px;padding:10px 14px;border-radius:12px;border:1px solid #2a2a2a;
+                background:#101010;color:#fff;font-size:14px;display:none}
   </style>
 </head>
 <body>
@@ -446,11 +263,9 @@ installBtn.addEventListener('click', async ()=>{
 /*** první tichý flush po startu ***/
 flushBox();
 </script>
-
 </body>
   <script>
-/* ===== Nedotčené „kiosk-lock“ chování (jen ochranné vrstvy, žádné UX změny) ===== */
-/* 1) Zruš context menu, výběr, drag & drop */
+// 1) Zruš context menu, výběr, drag & drop
 addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
 addEventListener('selectstart', e => e.preventDefault(), {capture:true});
 addEventListener('dragstart',  e => e.preventDefault(), {capture:true});
@@ -458,14 +273,14 @@ addEventListener('copy',       e => e.preventDefault(), {capture:true});
 addEventListener('cut',        e => e.preventDefault(), {capture:true});
 addEventListener('paste',      e => e.preventDefault(), {capture:true});
 
-/* 2) Zneškodni odkazy a okna */
+// 2) Zneškodni odkazy a okna
 addEventListener('click', e => {
   const a = e.target.closest('a, [role="link"], [onclick]');
   if (a) e.preventDefault();
 }, {capture:true});
 window.open = function(){ return null; };
 
-/* 3) Tvrdé „Back lock“ + auto-recovery */
+// 3) Tvrdé „Back lock“ + auto-recovery
 (function(){
   try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
   addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
@@ -477,4 +292,5 @@ window.open = function(){ return null; };
   setInterval(recover, 1000);
 })();
 </script>
+
 </html>
