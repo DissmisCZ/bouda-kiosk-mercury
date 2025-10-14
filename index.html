@@ -6,67 +6,240 @@
   <meta name="theme-color" content="#000000" />
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
-
-  <!--
-    ===============
-    STYLY / CSS
-    ===============
-    • Zvýrazněný brand Bouda Burgers (větší než hlavní nadpis, zelená barva)
-    • Zachované popisky pod tlačítky (nezmenšovat, ponechat)
-    • Zvětšené poděkování
-  -->
   <style>
+    /* ========== Moderní kiosk UI – pouze design (bez změn logiky) ========== */
+
+    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
+    html, body, * {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    img, svg, button { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
+    /* Pro jistotu deaktivuj odkazy */
+    a, [role="link"] { pointer-events: none !important; }
+
     :root{
-      --tile: clamp(120px, 18vmin, 220px);
-      --gap: clamp(12px, 2vmin, 24px);
-      --radius: clamp(14px, 2.2vmin, 22px);
-      --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#22c55e;
-      --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
+      --tile: clamp(130px, 19vmin, 240px);
+      --gap: clamp(14px, 2.2vmin, 26px);
+      --radius: clamp(16px, 2.4vmin, 24px);
+
+      /* Barvy */
+      --bg:#070707; 
+      --text:#ffffff; 
+      --muted:#bfc0c9; 
+      --accent:#ffb255;  /* teplejší akcent */
+      --tile-bg:#101010; 
+      --tile-bg-hover:#141414; 
+      --tile-border: #232323;
+      --tile-border-strong: #2b2b2b;
+      --glow:#ffb25522;
+
+      /* Stíny */
+      --shadow-soft: 0 8px 24px rgba(0,0,0,.55);
+      --shadow-hard: 0 2px 0 rgba(255,255,255,.03) inset, 0 1px 0 rgba(0,0,0,.6);
     }
 
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
-              font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
-    body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+    /* Základ */
+    html,body{
+      height:100%;
+      margin:0;
+      background: var(--bg);
+      color:var(--text);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
+    }
+    /* Dynamické pozadí – jemná animace */
+    body{
+      display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
+    }
+    body::before{
+      content:"";
+      position:fixed; inset: -20vmax;
+      background:
+        radial-gradient(1200px 1200px at 15% 10%, #ffb25510, transparent 60%),
+        radial-gradient(1000px 1000px at 85% 80%, #ff7a3d12, transparent 60%),
+        radial-gradient(900px 900px at 60% 30%, #f0a34410, transparent 60%),
+        linear-gradient(180deg, #0b0b0b, #070707 40%, #0a0a0a);
+      filter: blur(0.2px);
+      animation: bgFloat 22s ease-in-out infinite alternate;
+      pointer-events:none; z-index:-2;
+    }
+    body::after{
+      /* velmi jemný šum pro strukturu */
+      content:"";
+      position:fixed; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/ filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+      opacity:.18; mix-blend-mode:soft-light; pointer-events:none; z-index:-1;
+    }
+    @keyframes bgFloat{
+      0% { transform: translate3d(0,0,0) scale(1); }
+      100%{ transform: translate3d(-2%, -2%, 0) scale(1.02); }
+    }
 
-    .container{width:min(1400px,96vw);padding:clamp(10px,3vmin,40px);display:grid;
-               grid-template-rows:auto auto 1fr;row-gap:clamp(8px,1.6vmin,16px);
-               justify-items:center;text-align:center}
+    .container{
+      width:min(1400px,96vw);
+      padding:clamp(12px,3.4vmin,44px);
+      display:grid;
+      grid-template-rows:auto auto 1fr;
+      row-gap:clamp(10px,1.8vmin,18px);
+      justify-items:center;text-align:center;
+    }
 
-    /* BRAND - větší než hlavní nadpis */
-    .brand{color:var(--accent);text-transform:uppercase;letter-spacing:.2em;
-           font-weight:900;font-size:clamp(40px,8vmin,96px);}
+    /* Brand – musí být největší text na stránce */
+    .brand{
+      text-transform:uppercase;letter-spacing:.22em;font-weight:900;
+      font-size:clamp(28px,8.4vmin,92px); /* větší než H1 */
+      background: linear-gradient(92deg, #ffcf8a 0%, #f0a344 38%, #ff7a3d 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      text-shadow: 0 0 36px var(--glow);
+    }
 
-    h1{margin:.1em 0 0;font-weight:800;font-size:clamp(28px,5vmin,60px);line-height:1.06}
-    .sub{margin:.2em 0 0;color:var(--muted);font-size:clamp(16px,3vmin,28px)}
+    h1{
+      margin:.08em 0 0;font-weight:900;
+      font-size:clamp(32px,7.4vmin,78px);
+      line-height:1.04; letter-spacing:-.02em;
+      text-shadow: 0 8px 24px rgba(0,0,0,.5);
+    }
 
-    .grid{margin-top:clamp(12px,2.2vmin,24px);display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
-          gap:var(--gap);width:100%;place-items:center}
+    .sub{
+      margin:.25em 0 0;color:var(--muted);
+      font-size:clamp(17px,3.2vmin,30px);
+      opacity:.9;
+    }
 
-    .cell{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vmin,12px)}
+    .grid{
+      margin-top:clamp(16px,2.6vmin,26px);
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
+      gap:var(--gap); width:100%; place-items:center;
+    }
+    .cell{
+      display:flex;flex-direction:column;align-items:center;
+      gap:clamp(6px,1.2vmin,12px);
+    }
 
-    .btn{width:var(--tile);height:var(--tile);border:none;cursor:pointer;border-radius:var(--radius);
-         background:var(--tile-bg);box-shadow:0 0 0 1px var(--tile-border);
-         display:grid;place-items:center;transition:transform .06s ease,background .15s,box-shadow .15s;
-         will-change:transform}
-    .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
-    .btn:active{transform:scale(.965)}
+    /* Dlaždice – 3D, plynulé, moderní */
+    .btn{
+      width:var(--tile); height:var(--tile);
+      border:none; cursor:pointer; border-radius:var(--radius);
+      background:
+        linear-gradient(180deg, #131313, #0f0f0f);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,.06) inset,
+        0 -1px 0 rgba(0,0,0,.5) inset,
+        0 14px 30px rgba(0,0,0,.6);
+      outline: none;
+      display:grid; place-items:center;
+      transition: transform .12s ease, box-shadow .18s ease, background .2s ease, filter .2s ease;
+      will-change: transform, box-shadow, filter;
+      position:relative;
+      border:1px solid var(--tile-border);
+    }
+    .btn::after{
+      /* jemný „shine“ při hoveru */
+      content:"";
+      position:absolute; inset:0;
+      background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,.07) 50%, transparent 65%);
+      transform: translateX(-120%);
+      transition: transform .6s ease;
+      pointer-events:none; border-radius:inherit;
+    }
+    .btn:hover{
+      background: var(--tile-bg-hover);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,.08) inset,
+        0 -1px 0 rgba(0,0,0,.55) inset,
+        0 18px 38px rgba(0,0,0,.66),
+        0 0 0 1px var(--tile-border-strong);
+      transform: translateY(-2px) scale(1.02);
+      filter: drop-shadow(0 0 18px var(--glow));
+    }
+    .btn:hover::after{ transform: translateX(120%); }
+    .btn:active{
+      transform: translateY(0) scale(.98);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,.05) inset,
+        0 -1px 0 rgba(0,0,0,.7) inset,
+        0 8px 18px rgba(0,0,0,.7);
+    }
+    .btn:focus-visible{
+      outline: 2px solid #ffb255aa;
+      outline-offset: 3px;
+    }
 
-    .emoji{font-size:calc(var(--tile) * .55);line-height:1}
+    .emoji{
+      font-size:calc(var(--tile) * .58);
+      line-height:1; transform: translateZ(0);
+      transition: transform .18s ease;
+      will-change: transform;
+    }
+    .btn:hover .emoji{ transform: translateY(-2px) scale(1.06); }
+    .btn:active .emoji{ transform: translateY(1px) scale(.98); }
 
-    /* POPISKY – zachovány, neměnit */
-    .label{color:var(--muted);font-size:clamp(14px,1.9vmin,20px);white-space:nowrap}
+    .label{
+      color:var(--muted);
+      font-size:clamp(14px,2.1vmin,20px);
+      white-space:nowrap; opacity:.95;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .cell:hover .label{ opacity:1; transform: translateY(-1px); }
 
-    .overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.62);
-             opacity:0;pointer-events:none;transition:opacity .12s ease}
-    .overlay.show{opacity:1;pointer-events:auto}
+    /* Overlay „Děkujeme“ – větší a s pružnou animací */
+    .overlay{
+      position:fixed; inset:0; display:grid; place-items:center;
+      background:rgba(0,0,0,.62);
+      opacity:0; pointer-events:none; transition:opacity .16s ease;
+    }
+    .overlay.show{ opacity:1; pointer-events:auto; }
 
-    .thanks{font-size:clamp(34px,6vmin,72px);
-            padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
-            border-radius:var(--radius);color:#eaffea;
-            border:1px solid rgba(34,197,94,.6);
-            background:#0d1a0f;transform:scale(.96);opacity:0;transition:transform .12s,opacity .12s}
-    .overlay.show .thanks{transform:scale(1);opacity:1}
+    .thanks{
+      font-size:clamp(36px,8.2vmin,86px); /* větší než dřív */
+      padding:clamp(12px,1.8vmin,20px) clamp(18px,2.8vmin,32px);
+      border-radius: calc(var(--radius) + 6px);
+      color:#ffe7cd;
+      border:1px solid rgba(240,163,68,.7);
+      background:
+        linear-gradient(180deg, #1b1405, #120c02);
+      box-shadow:
+        0 0 0 1px rgba(240,163,68,.28) inset,
+        0 18px 42px rgba(0,0,0,.65),
+        0 0 48px #f0a34422;
+      transform: scale(.94) translateY(8px);
+      opacity:0;
+      transition: transform .18s ease, opacity .18s ease;
+      animation: none;
+    }
+    .overlay.show .thanks{
+      opacity:1; transform: scale(1) translateY(0);
+      animation: popSpring .6s cubic-bezier(.2,.8,.2,1) 1;
+    }
+    @keyframes popSpring{
+      0%{ transform: scale(.88); }
+      55%{ transform: scale(1.06); }
+      100%{ transform: scale(1); }
+    }
+
+    /* Tlačítko Instalovat – decentní peleta v rohu */
+    #installBtn{
+      position:fixed; right:12px; bottom:12px;
+      padding:10px 14px; border-radius:12px;
+      border:1px solid #2a2a2a; background:#101010; color:#fff;
+      font-size:14px; display:none;
+      box-shadow: 0 10px 24px rgba(0,0,0,.4);
+      transition: transform .14s ease, box-shadow .2s ease, background .2s ease;
+    }
+    #installBtn:hover{
+      background:#141414; transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(0,0,0,.5);
+    }
+    #installBtn:active{ transform: translateY(0); }
+
+    /* Preferuje-li uživatel méně pohybu, ztišíme animace */
+    @media (prefers-reduced-motion: reduce){
+      *{ animation:none !important; transition:none !important; }
+      body::before{ animation:none; }
+    }
   </style>
 </head>
 <body>
@@ -75,7 +248,6 @@
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
 
-    <!-- Zachované popisky u tlačítek -->
     <section id="grid" class="grid">
       <div class="cell"><button class="btn" data-value="5" title="Velmi spokojený"><span class="emoji">😁</span></button><div class="label">Velmi spokojený</div></div>
       <div class="cell"><button class="btn" data-value="4" title="Spokojený"><span class="emoji">🙂</span></button><div class="label">Spokojený</div></div>
@@ -88,5 +260,221 @@
   <div id="overlay" class="overlay" aria-hidden="true">
     <div class="thanks">Děkujeme za zpětnou vazbu!</div>
   </div>
+
+  <button id="installBtn">Instalovat</button>
+  
+<script>
+/* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
+
+/* 0) Pomocný flag pro PWA (instalovaná vs. prohlížeč) */
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || (window.navigator.standalone === true);
+
+/* 1) Vynucený hash, aby historie měla co „držet“ */
+(function ensureHash(){
+  if (!location.hash) {
+    history.replaceState(null, '', location.pathname + '#home');
+  }
+})();
+
+/* 2) Pevné „vycpání“ historie (2 položky) a tvrdé vracení vpřed */
+function hardenBackLock() {
+  try {
+    if (!sessionStorage.getItem('backArmed')) {
+      history.pushState({b:1}, '');
+      history.pushState({b:2}, '');
+      sessionStorage.setItem('backArmed','1');
+    }
+  } catch(_) {}
+  window.addEventListener('popstate', (e)=>{
+    // nedovolit odejít zpět – skoč rovnou dopředu
+    try { history.go(1); } catch(_) {}
+    // pro jistotu historii zase „dotuč“
+    try { history.pushState({b:3}, ''); } catch(_) {}
+  });
+}
+window.addEventListener('load', hardenBackLock);
+
+/* 3) Držet fullscreen vždy, když se appka zviditelní */
+async function ensureFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch(_) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') ensureFullscreen();
+});
+window.addEventListener('pageshow', () => {
+  // po návratu z BFCache znovu vycpeme historii a fullscreen
+  hardenBackLock();
+  ensureFullscreen();
+});
+
+/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
+      rychle a potichu obnov domovskou obrazovku */
+let lastUserTick = performance.now();
+document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
+document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
+
+function softRecover(){
+  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
+  if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
+    if (!location.hash || location.hash !== '#home') {
+      history.replaceState(null, '', location.pathname + '#home');
+    }
+    hardenBackLock();
+    ensureFullscreen();
+  }
+}
+document.addEventListener('visibilitychange', softRecover);
+setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
+
+/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Backspace' || e.key === 'Escape') {
+    e.preventDefault();
+  }
+}, {passive:false});
+</script>
+
+<script>
+/*** Webhook ***/
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxKT5x3dK3TIe77wfnG7tGTkOy7ftzil1hp0loCIVl9IC1sDOLRyenqtj70a4XBmvkb/exec";
+
+/*** UX parametry ***/
+const COOLDOWN_MS = 5000;
+const THANKS_MS   = 5000;
+
+/*** Outbox (tichý) ***/
+const BOX_KEY = "bouda_outbox_pwa";
+const readBox = () => JSON.parse(localStorage.getItem(BOX_KEY) || "[]");
+const writeBox = (v)=> localStorage.setItem(BOX_KEY, JSON.stringify(v));
+
+let flushing = false;
+async function flushBox(){
+  if(flushing || !navigator.onLine) return;
+  const box = readBox(); if(!box.length) return;
+  flushing = true;
+  try{
+    while(box.length && navigator.onLine){
+      const p = box[0];
+      await fetch(WEBHOOK_URL, {
+        method:"POST", mode:"no-cors",
+        headers:{ "Content-Type":"text/plain" },
+        body: JSON.stringify(p), keepalive:true
+      });
+      box.shift(); writeBox(box);
+    }
+  }catch(_){}
+  finally{ flushing = false; }
+}
+window.addEventListener("online", flushBox);
+
+/*** „Děkujeme“ + cooldown ***/
+const overlay = document.getElementById('overlay');
+const grid    = document.getElementById('grid');
+let cooldownUntil = 0;
+const canVote = () => performance.now() >= cooldownUntil;
+function startCooldown(){ cooldownUntil = performance.now() + COOLDOWN_MS; grid.style.pointerEvents="none"; setTimeout(()=>grid.style.pointerEvents="auto", COOLDOWN_MS); }
+function showThanks(){ overlay.classList.add('show'); setTimeout(()=> overlay.classList.remove('show'), THANKS_MS); }
+
+/*** Hlasování ***/
+function sendOrQueue(payload){
+  if(!navigator.onLine){
+    const b = readBox(); b.push(payload); writeBox(b);
+  } else {
+    fetch(WEBHOOK_URL, {
+      method:"POST", mode:"no-cors",
+      headers:{ "Content-Type":"text/plain" },
+      body: JSON.stringify(payload), keepalive:true
+    }).catch(() => {
+      const b = readBox(); b.push(payload); writeBox(b);
+    });
+  }
+  flushBox();
+}
+function vote(value){
+  if(!canVote()) return;
+  startCooldown(); showThanks();
+  const payload = { time:new Date().toISOString(), value:Number(value), kiosk:"Bouda-kiosek", question:"Ohodnoť dnešní nákup" };
+  sendOrQueue(payload);
+}
+document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click', ()=> vote(b.dataset.value), {passive:true}));
+
+/*** Fullscreen + WakeLock po prvním kliknutí ***/
+async function enterFullscreenAndWake() {
+  try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); } catch(_) {}
+  try {
+    if ('wakeLock' in navigator) {
+      window._wl = await navigator.wakeLock.request('screen');
+      document.addEventListener('visibilitychange', async ()=>{
+        if (document.visibilityState === 'visible') {
+          try { window._wl = await navigator.wakeLock.request('screen'); } catch(_){}
+        }
+      });
+    }
+  } catch(_) {}
+}
+document.addEventListener('click', function once(){
+  enterFullscreenAndWake();
+  document.removeEventListener('click', once, {capture:true});
+}, {capture:true, once:true});
+
+/*** PWA: registrace SW ***/
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+/*** PWA: tlačítko „Instalovat“ ***/
+let defPrompt;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  defPrompt = e;
+  installBtn.style.display = 'block';
+});
+installBtn.addEventListener('click', async ()=>{
+  if(!defPrompt) return;
+  defPrompt.prompt();
+  await defPrompt.userChoice;
+  defPrompt = null;
+  installBtn.style.display = 'none';
+});
+
+/*** první tichý flush po startu ***/
+flushBox();
+</script>
+
 </body>
+  <script>
+/* ===== Nedotčené „kiosk-lock“ chování (jen ochranné vrstvy, žádné UX změny) ===== */
+/* 1) Zruš context menu, výběr, drag & drop */
+addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
+addEventListener('selectstart', e => e.preventDefault(), {capture:true});
+addEventListener('dragstart',  e => e.preventDefault(), {capture:true});
+addEventListener('copy',       e => e.preventDefault(), {capture:true});
+addEventListener('cut',        e => e.preventDefault(), {capture:true});
+addEventListener('paste',      e => e.preventDefault(), {capture:true});
+
+/* 2) Zneškodni odkazy a okna */
+addEventListener('click', e => {
+  const a = e.target.closest('a, [role="link"], [onclick]');
+  if (a) e.preventDefault();
+}, {capture:true});
+window.open = function(){ return null; };
+
+/* 3) Tvrdé „Back lock“ + auto-recovery */
+(function(){
+  try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
+  addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
+  if (!location.hash) { try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ } }
+  const recover=()=>{ if (document.visibilityState==='visible') {
+    try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ }
+  }};
+  addEventListener('visibilitychange', recover);
+  setInterval(recover, 1000);
+})();
+</script>
 </html>
