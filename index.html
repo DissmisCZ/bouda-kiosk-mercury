@@ -7,6 +7,17 @@
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
   <style>
+    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
+    html, body, * {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    img, svg, button { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
+    /* Pro jistotu deaktivuj odkazy */
+    a, [role="link"] { pointer-events: none !important; }
+
     :root{
       --tile: clamp(120px, 18vmin, 220px);
       --gap: clamp(12px, 2vmin, 24px);
@@ -253,4 +264,33 @@ installBtn.addEventListener('click', async ()=>{
 flushBox();
 </script>
 </body>
+  <script>
+// 1) Zruš context menu, výběr, drag & drop
+addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
+addEventListener('selectstart', e => e.preventDefault(), {capture:true});
+addEventListener('dragstart',  e => e.preventDefault(), {capture:true});
+addEventListener('copy',       e => e.preventDefault(), {capture:true});
+addEventListener('cut',        e => e.preventDefault(), {capture:true});
+addEventListener('paste',      e => e.preventDefault(), {capture:true});
+
+// 2) Zneškodni odkazy a okna
+addEventListener('click', e => {
+  const a = e.target.closest('a, [role="link"], [onclick]');
+  if (a) e.preventDefault();
+}, {capture:true});
+window.open = function(){ return null; };
+
+// 3) Tvrdé „Back lock“ + auto-recovery
+(function(){
+  try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
+  addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
+  if (!location.hash) { try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ } }
+  const recover=()=>{ if (document.visibilityState==='visible') {
+    try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ }
+  }};
+  addEventListener('visibilitychange', recover);
+  setInterval(recover, 1000);
+})();
+</script>
+
 </html>
