@@ -6,6 +6,17 @@
   <meta name="theme-color" content="#000000" />
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
+
+  <!--
+    ===============
+    STYLY / CSS
+    ===============
+    • Globální nastavení kiosku (bez výběru textu, fullscreen, tmavé téma)
+    • Grid s pěti tlačítky (emoji) pro hodnocení
+    • Overlay s poděkováním po odeslání
+    • Opravy: zvětšené logo/brand a změna barvy na ZELENOU
+              + zvětšený text "Děkujeme za zpětnou vazbu!"
+  -->
   <style>
     /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
     html, body, * {
@@ -19,53 +30,108 @@
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
+      /* Základní "design tokens" – velikosti, barvy */
       --tile: clamp(120px, 18vmin, 220px);
       --gap: clamp(12px, 2vmin, 24px);
       --radius: clamp(14px, 2.2vmin, 22px);
-      --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
-      --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
+
+      --bg:#000;        /* barva pozadí celé stránky */
+      --text:#fff;      /* hlavní text */
+      --muted:#bfc0c9;  /* méně výrazný text */
+      --accent:#22c55e; /* ZMĚNA: zelená akcentní barva (původně oranžová #f0a344) */
+
+      --tile-bg:#111;           /* dlaždice – pozadí */
+      --tile-bg-hover:#151515;  /* hover stav */
+      --tile-border:#242424;    /* okraj dlaždice */
     }
+
+    /* Layout celé obrazovky */
     html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
               font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
     body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+    /* Hlavní kontejner: logo/brand, nadpis, podnadpis, grid s tlačítky */
     .container{width:min(1400px,96vw);padding:clamp(10px,3vmin,40px);display:grid;
                grid-template-rows:auto auto 1fr;row-gap:clamp(8px,1.6vmin,16px);
                justify-items:center;text-align:center}
+
+    /* BRAND / LOGO
+       - ZMĚNA: zvětšeno + barva do zelena (viz --accent)
+    */
     .brand{color:var(--accent);text-transform:uppercase;letter-spacing:.2em;
-           font-weight:800;font-size:clamp(12px,1.4vmin,18px)}
+           font-weight:800;
+           /* PŮVODNĚ: clamp(12px,1.4vmin,18px)
+              NOVĚ: větší, lépe čitelné v kiosku */
+           font-size:clamp(16px,2.2vmin,28px)}
+
+    /* Hlavní nadpis */
     h1{margin:.1em 0 0;font-weight:800;font-size:clamp(28px,6.2vmin,64px);line-height:1.06}
+
+    /* Podnadpis */
     .sub{margin:.2em 0 0;color:var(--muted);font-size:clamp(16px,3vmin,28px)}
+
+    /* Grid s pěti volbami (emoji) */
     .grid{margin-top:clamp(12px,2.2vmin,24px);display:grid;
           grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
           gap:var(--gap);width:100%;place-items:center}
+
+    /* Buňka gridu: tlačítko + popisek */
     .cell{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vmin,12px)}
+
+    /* Tlačítko (dlaždice) pro hlasování */
     .btn{width:var(--tile);height:var(--tile);border:none;cursor:pointer;border-radius:var(--radius);
          background:var(--tile-bg);box-shadow:0 0 0 1px var(--tile-border);
          display:grid;place-items:center;transition:transform .06s ease,background .15s,box-shadow .15s;
          will-change:transform}
     .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
     .btn:active{transform:scale(.965)}
+
+    /* Emoji uvnitř tlačítka */
     .emoji{font-size:calc(var(--tile) * .55);line-height:1}
+
+    /* Popisek pod tlačítkem */
     .label{color:var(--muted);font-size:clamp(14px,1.9vmin,20px);white-space:nowrap}
+
+    /* Překryvná vrstva s poděkováním */
     .overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.62);
              opacity:0;pointer-events:none;transition:opacity .12s ease}
     .overlay.show{opacity:1;pointer-events:auto}
-    .thanks{font-size:clamp(26px,4.8vmin,56px);
+
+    /* Panel s textem poděkování
+       - ZMĚNA: zvětšený text pro lepší čitelnost na dálku
+         PŮVODNĚ: clamp(26px,4.8vmin,56px)
+         NOVĚ:    clamp(34px,6vmin,72px)
+    */
+    .thanks{font-size:clamp(34px,6vmin,72px);
             padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
-            border-radius:var(--radius);color:#ffe6c7;border:1px solid rgba(240,163,68,.6);
-            background:#161002;transform:scale(.96);opacity:0;transition:transform .12s,opacity .12s}
+            border-radius:var(--radius);color:#eaffea; /* jemně nazelenalý text */
+            border:1px solid rgba(34,197,94,.6); /* ladí se zelenou */
+            background:#0d1a0f; /* tmavě zelené pozadí */
+            transform:scale(.96);opacity:0;transition:transform .12s,opacity .12s}
     .overlay.show .thanks{transform:scale(1);opacity:1}
+
+    /* Tlačítko pro instalaci PWA (zobrazí se jen, když je k dispozici) */
     #installBtn{position:fixed;right:12px;bottom:12px;padding:10px 14px;border-radius:12px;border:1px solid #2a2a2a;
                 background:#101010;color:#fff;font-size:14px;display:none}
   </style>
 </head>
 <body>
+  <!--
+    ===============
+    OBSAH / HTML
+    ===============
+    • Logo/brand (BOUDA BURGERS)
+    • Nadpis + podnadpis
+    • Pět voleb s emoji
+    • Overlay s poděkováním
+  -->
   <main class="container" aria-live="polite">
     <div class="brand">🍔 BOUDA&nbsp;BURGERS</div>
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
 
     <section id="grid" class="grid">
+      <!-- Každé tlačítko nese data-value (1–5). Klik = odeslat hlas. -->
       <div class="cell"><button class="btn" data-value="5" title="Velmi spokojený"><span class="emoji">😁</span></button><div class="label">Velmi spokojený</div></div>
       <div class="cell"><button class="btn" data-value="4" title="Spokojený"><span class="emoji">🙂</span></button><div class="label">Spokojený</div></div>
       <div class="cell"><button class="btn" data-value="3" title="Neutrální"><span class="emoji">😐</span></button><div class="label">Neutrální</div></div>
@@ -74,12 +140,23 @@
     </section>
   </main>
 
+  <!-- Overlay s poděkováním (zviditelní se po kliknutí) -->
   <div id="overlay" class="overlay" aria-hidden="true">
     <div class="thanks">Děkujeme za zpětnou vazbu!</div>
   </div>
 
+  <!-- Volitelné tlačítko pro instalaci PWA -->
   <button id="installBtn">Instalovat</button>
   
+  <!--
+    ========================
+    SCRIPT 1: Kiosk režim / UX ochrany
+    ========================
+    • Zámek tlačítka Zpět (back lock) přes historii
+    • Vynucování fullscreen režimu
+    • Watchdog pro auto-recover na #home
+    • Blokování kláves Backspace/Escape jako navigace
+  -->
 <script>
 /* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
 
@@ -120,11 +197,12 @@ async function ensureFullscreen() {
     }
   } catch(_) {}
 }
+// Když se stránka vrátí do popředí -> hlídej fullscreen
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') ensureFullscreen();
 });
+// Po návratu z BFCache znovu vycpeme historii a fullscreen
 window.addEventListener('pageshow', () => {
-  // po návratu z BFCache znovu vycpeme historii a fullscreen
   hardenBackLock();
   ensureFullscreen();
 });
@@ -132,6 +210,7 @@ window.addEventListener('pageshow', () => {
 /* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
       rychle a potichu obnov domovskou obrazovku */
 let lastUserTick = performance.now();
+// Poslední interakce uživatele – můžeš případně použít na anti-spam
 document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
 document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
 
@@ -145,6 +224,7 @@ function softRecover(){
     ensureFullscreen();
   }
 }
+// Reaguj na změnu viditelnosti a periodicky kontroluj
 document.addEventListener('visibilitychange', softRecover);
 setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
 
@@ -156,15 +236,26 @@ document.addEventListener('keydown', (e)=>{
 }, {passive:false});
 </script>
 
+<!--
+  ========================
+  SCRIPT 2: Odesílání hlasů (webhook) + UX logika
+  ========================
+  • Offline outbox do localStorage (BOX_KEY)
+  • Tichý flush při připojení k internetu
+  • Overlay "Děkujeme" + cooldown proti spam-kliku
+  • Vstup do fullscreen + WakeLock při prvním kliknutí
+  • Registrace service workeru pro PWA
+  • Tlačítko „Instalovat“ (beforeinstallprompt)
+-->
 <script>
 /*** Webhook ***/
 const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxKT5x3dK3TIe77wfnG7tGTkOy7ftzil1hp0loCIVl9IC1sDOLRyenqtj70a4XBmvkb/exec";
 
 /*** UX parametry ***/
-const COOLDOWN_MS = 5000;
-const THANKS_MS   = 5000;
+const COOLDOWN_MS = 5000; // pauza mezi hlasy na jednom kiosku
+const THANKS_MS   = 5000; // jak dlouho zobrazit poděkování
 
-/*** Outbox (tichý) ***/
+/*** Outbox (tichý) – offline fronta v localStorage ***/
 const BOX_KEY = "bouda_outbox_pwa";
 const readBox = () => JSON.parse(localStorage.getItem(BOX_KEY) || "[]");
 const writeBox = (v)=> localStorage.setItem(BOX_KEY, JSON.stringify(v));
@@ -184,7 +275,7 @@ async function flushBox(){
       });
       box.shift(); writeBox(box);
     }
-  }catch(_){}
+  }catch(_){/* v tichosti selhat – data zůstanou v outboxu */}
   finally{ flushing = false; }
 }
 window.addEventListener("online", flushBox);
@@ -194,10 +285,17 @@ const overlay = document.getElementById('overlay');
 const grid    = document.getElementById('grid');
 let cooldownUntil = 0;
 const canVote = () => performance.now() >= cooldownUntil;
-function startCooldown(){ cooldownUntil = performance.now() + COOLDOWN_MS; grid.style.pointerEvents="none"; setTimeout(()=>grid.style.pointerEvents="auto", COOLDOWN_MS); }
-function showThanks(){ overlay.classList.add('show'); setTimeout(()=> overlay.classList.remove('show'), THANKS_MS); }
+function startCooldown(){
+  cooldownUntil = performance.now() + COOLDOWN_MS;
+  grid.style.pointerEvents="none";
+  setTimeout(()=>grid.style.pointerEvents="auto", COOLDOWN_MS);
+}
+function showThanks(){
+  overlay.classList.add('show');
+  setTimeout(()=> overlay.classList.remove('show'), THANKS_MS);
+}
 
-/*** Hlasování ***/
+/*** Hlasování – odešli hned, nebo ulož do outboxu ***/
 function sendOrQueue(payload){
   if(!navigator.onLine){
     const b = readBox(); b.push(payload); writeBox(b);
@@ -213,12 +311,21 @@ function sendOrQueue(payload){
   flushBox();
 }
 function vote(value){
-  if(!canVote()) return;
-  startCooldown(); showThanks();
-  const payload = { time:new Date().toISOString(), value:Number(value), kiosk:"Bouda-kiosek", question:"Ohodnoť dnešní nákup" };
+  if(!canVote()) return;           // ignoruj spam kliky
+  startCooldown();
+  showThanks();
+  const payload = {
+    time:new Date().toISOString(),
+    value:Number(value),
+    kiosk:"Bouda-kiosek",
+    question:"Ohodnoť dnešní nákup"
+  };
   sendOrQueue(payload);
 }
-document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click', ()=> vote(b.dataset.value), {passive:true}));
+// Napojení všech pěti tlačítek
+document.querySelectorAll('.btn').forEach(b=>
+  b.addEventListener('click', ()=> vote(b.dataset.value), {passive:true})
+);
 
 /*** Fullscreen + WakeLock po prvním kliknutí ***/
 async function enterFullscreenAndWake() {
@@ -234,6 +341,7 @@ async function enterFullscreenAndWake() {
     }
   } catch(_) {}
 }
+// Aktivuje se při první uživatelské interakci
 document.addEventListener('click', function once(){
   enterFullscreenAndWake();
   document.removeEventListener('click', once, {capture:true});
@@ -263,8 +371,18 @@ installBtn.addEventListener('click', async ()=>{
 /*** první tichý flush po startu ***/
 flushBox();
 </script>
-</body>
-  <script>
+
+<!--
+  ========================
+  SCRIPT 3: Další "pojistky" pro kiosk
+  ========================
+  • Blokace kontextového menu, selectu, drag&drop a schránky
+  • Zneškodnění odkazů a window.open
+  • Druhý (redundantní) back lock + auto-recovery (překrývá se s prvním)
+    Pozn.: ponecháno, protože můžeš chtít dvojitou ochranu. Klidně odstraň, pokud
+           chceš udržovat jen jeden mechanismus (Script 1).
+-->
+<script>
 // 1) Zruš context menu, výběr, drag & drop
 addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
 addEventListener('selectstart', e => e.preventDefault(), {capture:true});
@@ -280,7 +398,7 @@ addEventListener('click', e => {
 }, {capture:true});
 window.open = function(){ return null; };
 
-// 3) Tvrdé „Back lock“ + auto-recovery
+// 3) Tvrdé „Back lock“ + auto-recovery (REDUNDANTNÍ k Scriptu 1)
 (function(){
   try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
   addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
@@ -293,4 +411,5 @@ window.open = function(){ return null; };
 })();
 </script>
 
+</body>
 </html>
