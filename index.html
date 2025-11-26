@@ -19,7 +19,6 @@
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      /* větší využití výšky viewportu – funguje dobře i na PC */
       --tile: clamp(160px, 26vh, 260px);
       --gap: clamp(12px, 2vmin, 24px);
       --radius: clamp(14px, 2.2vmin, 22px);
@@ -32,14 +31,14 @@
     html{
       height:100%;
       margin:0;
-      background:var(--bg); /* černé pozadí na HTML */
+      background:var(--bg);
       color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
     }
     body{
       height:100%;
       margin:0;
-      background:transparent; /* tělo průhledné, aby šly vidět paprsky */
+      background:transparent;
       color:var(--text);
       display:flex;
       align-items:center;
@@ -48,14 +47,14 @@
       position:relative;
     }
 
-    /* šipky/paprsky z horní hrany, různé délky */
+    /* Paprsky – přicházejí shora z mimo obraz, jako v referenci */
     body::before{
       content:"";
       position:fixed;
       inset:0;
       background:
         conic-gradient(
-          from 180deg at 50% 0%,
+          from 180deg at 50% -40%,   /* střed vysoko nad viewportem */
           var(--ray-green)   -8deg   6deg,
           transparent         6deg  16deg,
           var(--ray-yellow)  16deg  32deg,
@@ -69,9 +68,9 @@
           var(--ray-yellow) 150deg 178deg,
           transparent       178deg 200deg
         );
-      /* paprsky začínají nahoře, dole se ztrácí → různé délky */
-      mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
-      -webkit-mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
+      /* trošku usekneme spodek, aby se paprsky ztrácely */
+      mask: linear-gradient(to bottom, #000 0 75%, transparent 100%);
+      -webkit-mask: linear-gradient(to bottom, #000 0 75%, transparent 100%);
       opacity:.9;
       pointer-events:none;
       z-index:0;
@@ -86,7 +85,7 @@
       justify-items:center;
       text-align:center;
       position:relative;
-      z-index:1; /* obsah nad paprsky */
+      z-index:1;
     }
 
     .brand{ /* styl existuje, ale textový brand jsme odstranili z HTML */
@@ -139,7 +138,7 @@
     .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
     .btn:active{transform:scale(.965)}
     .emoji{
-      font-size:calc(var(--tile) * .7); /* velicí smajlíci i na PC */
+      font-size:calc(var(--tile) * .7);
       line-height:1
     }
     .face-img{
@@ -192,8 +191,6 @@
 </head>
 <body>
   <main class="container" aria-live="polite">
-    <!-- textový brand BOUDA BURGERS je pryč, logo zůstává v grafice -->
-
     <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
     <section id="grid" class="grid">
       <div class="cell">
@@ -228,7 +225,6 @@
       </div>
     </section>
 
-    <!-- TEXT POD SMAJLÍKY -->
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
   </main>
@@ -263,9 +259,7 @@ function hardenBackLock() {
     }
   } catch(_) {}
   window.addEventListener('popstate', (e)=>{
-    // nedovolit odejít zpět – skoč rovnou dopředu
     try { history.go(1); } catch(_) {}
-    // pro jistotu historii zase „dotuč“
     try { history.pushState({b:3}, ''); } catch(_) {}
   });
 }
@@ -283,19 +277,16 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') ensureFullscreen();
 });
 window.addEventListener('pageshow', () => {
-  // po návratu z BFCache znovu vycpeme historii a fullscreen
   hardenBackLock();
   ensureFullscreen();
 });
 
-/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
-      rychle a potichu obnov domovskou obrazovku */
+/* 4) Watchdog */
 let lastUserTick = performance.now();
 document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
 document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
 
 function softRecover(){
-  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
   if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
     if (!location.hash || location.hash !== '#home') {
       history.replaceState(null, '', location.pathname + '#home');
@@ -305,9 +296,9 @@ function softRecover(){
   }
 }
 document.addEventListener('visibilitychange', softRecover);
-setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
+setInterval(softRecover, 1200);
 
-/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
+/* 5) Blok Backspace/Escape */
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Backspace' || e.key === 'Escape') {
     e.preventDefault();
