@@ -48,34 +48,33 @@
       position:relative;
     }
 
-    /* šipky v pozadí – paprsky teď začínají blíž středu, takže jsou vidět */
+    /* šipky/paprsky z horní hrany, různé délky */
     body::before{
       content:"";
       position:fixed;
       inset:0;
       background:
         conic-gradient(
-          var(--ray-green) 0deg 10deg,
-          transparent 10deg 20deg,
-          var(--ray-yellow) 20deg 30deg,
-          transparent 30deg 40deg,
-          var(--ray-green) 40deg 50deg,
-          transparent 50deg 60deg,
-          var(--ray-yellow) 60deg 70deg,
-          transparent 70deg 80deg,
-          var(--ray-green) 80deg 90deg,
-          transparent 90deg 100deg,
-          var(--ray-yellow) 100deg 110deg,
-          transparent 110deg 120deg,
-          var(--ray-green) 120deg 130deg,
-          transparent 130deg 140deg
+          from 180deg at 50% 0%,
+          var(--ray-green)   -8deg   6deg,
+          transparent         6deg  16deg,
+          var(--ray-yellow)  16deg  32deg,
+          transparent        32deg  44deg,
+          var(--ray-green)   44deg  60deg,
+          transparent        60deg  72deg,
+          var(--ray-yellow)  72deg  94deg,
+          transparent        94deg 110deg,
+          var(--ray-green)  110deg 134deg,
+          transparent       134deg 150deg,
+          var(--ray-yellow) 150deg 178deg,
+          transparent       178deg 200deg
         );
-      /* dřív: 0 34% → šipky byly až moc u krajů, teď začnou kolem 18% */
-      mask: radial-gradient(circle at center, transparent 0 18%, #000 19% 100%);
-      -webkit-mask: radial-gradient(circle at center, transparent 0 18%, #000 19% 100%);
+      /* paprsky začínají nahoře, dole se ztrácí → různé délky */
+      mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
+      -webkit-mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
       opacity:.9;
       pointer-events:none;
-      z-index:0; /* už NE -1, musí být nad pozadím html */
+      z-index:0;
     }
 
     .container{
