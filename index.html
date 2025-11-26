@@ -19,7 +19,8 @@
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      --tile: clamp(140px, 22vmin, 260px);
+      /* větší využití výšky viewportu – funguje dobře i na PC */
+      --tile: clamp(160px, 26vh, 260px);
       --gap: clamp(12px, 2vmin, 24px);
       --radius: clamp(14px, 2.2vmin, 22px);
       --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
@@ -43,7 +44,7 @@
       position:relative;
     }
 
-    /* šipky v pozadí */
+    /* šipky v pozadí – paprsky teď začínají blíž středu, takže jsou vidět */
     body::before{
       content:"";
       position:fixed;
@@ -65,8 +66,9 @@
           var(--ray-green) 120deg 130deg,
           transparent 130deg 140deg
         );
-      mask: radial-gradient(circle at center, transparent 0 34%, #000 35% 100%);
-      -webkit-mask: radial-gradient(circle at center, transparent 0 34%, #000 35% 100%);
+      /* dřív: 0 34% → šipky byly až moc u krajů, teď začnou kolem 18% */
+      mask: radial-gradient(circle at center, transparent 0 18%, #000 19% 100%);
+      -webkit-mask: radial-gradient(circle at center, transparent 0 18%, #000 19% 100%);
       opacity:.9;
       pointer-events:none;
       z-index:-1;
@@ -82,7 +84,7 @@
       text-align:center
     }
 
-    .brand{ /* styl nechávám, ale element jsme vyhodili */
+    .brand{ /* styl existuje, ale textový brand jsme odstranili z HTML */
       color:var(--accent);
       text-transform:uppercase;
       letter-spacing:.2em;
@@ -132,7 +134,7 @@
     .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
     .btn:active{transform:scale(.965)}
     .emoji{
-      font-size:calc(var(--tile) * .7); /* větší smajlíci */
+      font-size:calc(var(--tile) * .7); /* velicí smajlíci i na PC */
       line-height:1
     }
     .face-img{
@@ -185,7 +187,7 @@
 </head>
 <body>
   <main class="container" aria-live="polite">
-    <!-- původní textový brand BOUDA BURGERS je pryč -->
+    <!-- textový brand BOUDA BURGERS je pryč, logo zůstává v grafice -->
 
     <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
     <section id="grid" class="grid">
@@ -221,7 +223,7 @@
       </div>
     </section>
 
-    <!-- TEXT POSUNUTÝ POD SMAJLÍKY -->
+    <!-- TEXT POD SMAJLÍKY -->
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
   </main>
