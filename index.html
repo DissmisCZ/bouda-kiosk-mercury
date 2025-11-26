@@ -19,59 +19,211 @@
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      --tile: clamp(120px, 18vmin, 220px);
+      --tile: clamp(140px, 22vmin, 260px);
       --gap: clamp(12px, 2vmin, 24px);
       --radius: clamp(14px, 2.2vmin, 22px);
       --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
       --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
+      --ray-green:#00a651;
+      --ray-yellow:#ffc82e;
     }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
-              font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
-    body{display:flex;align-items:center;justify-content:center;overflow:hidden}
-    .container{width:min(1400px,96vw);padding:clamp(10px,3vmin,40px);display:grid;
-               grid-template-rows:auto auto 1fr;row-gap:clamp(8px,1.6vmin,16px);
-               justify-items:center;text-align:center}
-    .brand{color:var(--accent);text-transform:uppercase;letter-spacing:.2em;
-           font-weight:800;font-size:clamp(28px,8vmin,92px)}
-    h1{margin:.1em 0 0;font-weight:800;font-size:clamp(28px,6.2vmin,64px);line-height:1.06}
-    .sub{margin:.2em 0 0;color:var(--muted);font-size:clamp(16px,3vmin,28px)}
-    .grid{margin-top:clamp(12px,2.2vmin,24px);display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
-          gap:var(--gap);width:100%;place-items:center}
-    .cell{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vmin,12px)}
-    .btn{width:var(--tile);height:var(--tile);border:none;cursor:pointer;border-radius:var(--radius);
-         background:var(--tile-bg);box-shadow:0 0 0 1px var(--tile-border);
-         display:grid;place-items:center;transition:transform .06s ease,background .15s,box-shadow .15s;
-         will-change:transform}
+
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif
+    }
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      position:relative;
+    }
+
+    /* šipky v pozadí */
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        conic-gradient(
+          var(--ray-green) 0deg 10deg,
+          transparent 10deg 20deg,
+          var(--ray-yellow) 20deg 30deg,
+          transparent 30deg 40deg,
+          var(--ray-green) 40deg 50deg,
+          transparent 50deg 60deg,
+          var(--ray-yellow) 60deg 70deg,
+          transparent 70deg 80deg,
+          var(--ray-green) 80deg 90deg,
+          transparent 90deg 100deg,
+          var(--ray-yellow) 100deg 110deg,
+          transparent 110deg 120deg,
+          var(--ray-green) 120deg 130deg,
+          transparent 130deg 140deg
+        );
+      mask: radial-gradient(circle at center, transparent 0 34%, #000 35% 100%);
+      -webkit-mask: radial-gradient(circle at center, transparent 0 34%, #000 35% 100%);
+      opacity:.9;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .container{
+      width:min(1400px,96vw);
+      padding:clamp(10px,3vmin,40px);
+      display:grid;
+      grid-template-rows:auto auto auto;
+      row-gap:clamp(8px,1.6vmin,16px);
+      justify-items:center;
+      text-align:center
+    }
+
+    .brand{ /* styl nechávám, ale element jsme vyhodili */
+      color:var(--accent);
+      text-transform:uppercase;
+      letter-spacing:.2em;
+      font-weight:800;
+      font-size:clamp(28px,8vmin,92px)
+    }
+
+    h1{
+      margin:clamp(12px,2vmin,20px) 0 0;
+      font-weight:800;
+      font-size:clamp(28px,6.2vmin,64px);
+      line-height:1.06
+    }
+    .sub{
+      margin:.2em 0 0;
+      color:var(--muted);
+      font-size:clamp(16px,3vmin,28px)
+    }
+
+    .grid{
+      margin-top:clamp(4px,1vmin,10px);
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
+      gap:var(--gap);
+      width:100%;
+      place-items:center
+    }
+    .cell{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:clamp(6px,1.2vmin,12px)
+    }
+    .btn{
+      width:var(--tile);
+      height:var(--tile);
+      border:none;
+      cursor:pointer;
+      border-radius:var(--radius);
+      background:var(--tile-bg);
+      box-shadow:0 0 0 1px var(--tile-border);
+      display:grid;
+      place-items:center;
+      transition:transform .06s ease,background .15s,box-shadow .15s;
+      will-change:transform
+    }
     .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
     .btn:active{transform:scale(.965)}
-    .emoji{font-size:calc(var(--tile) * .55);line-height:1}
-    .label{color:var(--muted);font-size:clamp(14px,1.9vmin,20px);white-space:nowrap}
-    .overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.62);
-             opacity:0;pointer-events:none;transition:opacity .12s ease}
+    .emoji{
+      font-size:calc(var(--tile) * .7); /* větší smajlíci */
+      line-height:1
+    }
+    .face-img{
+      width:72%;
+      height:72%;
+      object-fit:contain;
+      pointer-events:none;
+    }
+    .label{
+      color:var(--muted);
+      font-size:clamp(14px,1.9vmin,20px);
+      white-space:nowrap
+    }
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:rgba(0,0,0,.62);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .12s ease
+    }
     .overlay.show{opacity:1;pointer-events:auto}
-    .thanks{font-size:clamp(26px,4.8vmin,56px);
-            padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
-            border-radius:var(--radius);color:#ffe6c7;border:1px solid rgba(240,163,68,.6);
-            background:#161002;transform:scale(.96);opacity:0;transition:transform .12s,opacity .12s}
+    .thanks{
+      font-size:clamp(26px,4.8vmin,56px);
+      padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
+      border-radius:var(--radius);
+      color:#ffe6c7;
+      border:1px solid rgba(240,163,68,.6);
+      background:#161002;
+      transform:scale(.96);
+      opacity:0;
+      transition:transform .12s,opacity .12s
+    }
     .overlay.show .thanks{transform:scale(1);opacity:1}
-    #installBtn{position:fixed;right:12px;bottom:12px;padding:10px 14px;border-radius:12px;border:1px solid #2a2a2a;
-                background:#101010;color:#fff;font-size:14px;display:none}
+    #installBtn{
+      position:fixed;
+      right:12px;
+      bottom:12px;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid #2a2a2a;
+      background:#101010;
+      color:#fff;
+      font-size:14px;
+      display:none
+    }
   </style>
 </head>
 <body>
   <main class="container" aria-live="polite">
-    <div class="brand">BOUDA&nbsp;BURGERS</div>
+    <!-- původní textový brand BOUDA BURGERS je pryč -->
+
+    <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
+    <section id="grid" class="grid">
+      <div class="cell">
+        <button class="btn" data-value="1" title="Velmi nespokojený">
+          <span class="emoji">😡</span>
+        </button>
+        <div class="label">Velmi nespokojený</div>
+      </div>
+      <div class="cell">
+        <button class="btn" data-value="2" title="Nespokojený">
+          <span class="emoji">🙁</span>
+        </button>
+        <div class="label">Nespokojený</div>
+      </div>
+      <div class="cell">
+        <button class="btn" data-value="3" title="Neutrální">
+          <span class="emoji">😐</span>
+        </button>
+        <div class="label">Neutrální</div>
+      </div>
+      <div class="cell">
+        <button class="btn" data-value="4" title="Spokojený">
+          <span class="emoji">🙂</span>
+        </button>
+        <div class="label">Spokojený</div>
+      </div>
+      <div class="cell">
+        <button class="btn" data-value="5" title="Velmi spokojený">
+          <span class="emoji">😁</span>
+        </button>
+        <div class="label">Velmi spokojený</div>
+      </div>
+    </section>
+
+    <!-- TEXT POSUNUTÝ POD SMAJLÍKY -->
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
-
-    <section id="grid" class="grid">
-      <div class="cell"><button class="btn" data-value="5" title="Velmi spokojený"><span class="emoji">😁</span></button><div class="label">Velmi spokojený</div></div>
-      <div class="cell"><button class="btn" data-value="4" title="Spokojený"><span class="emoji">🙂</span></button><div class="label">Spokojený</div></div>
-      <div class="cell"><button class="btn" data-value="3" title="Neutrální"><span class="emoji">😐</span></button><div class="label">Neutrální</div></div>
-      <div class="cell"><button class="btn" data-value="2" title="Nespokojený"><span class="emoji">🙁</span></button><div class="label">Nespokojený</div></div>
-      <div class="cell"><button class="btn" data-value="1" title="Velmi nespokojený"><span class="emoji">😡</span></button><div class="label">Velmi nespokojený</div></div>
-    </section>
   </main>
 
   <div id="overlay" class="overlay" aria-hidden="true">
@@ -262,6 +414,37 @@ installBtn.addEventListener('click', async ()=>{
 
 /*** první tichý flush po startu ***/
 flushBox();
+
+/*** Dynamické face1–face5 (fallback na emoji) ***/
+(function setupFaces(){
+  const exts = ['.png','.webp','.jpg','.jpeg','.svg'];
+  document.querySelectorAll('.btn').forEach(btn=>{
+    const val = btn.dataset.value;
+    const emojiSpan = btn.querySelector('.emoji');
+    if(!emojiSpan) return;
+
+    (async () => {
+      for(const ext of exts){
+        const src = `face${val}${ext}`;
+        const ok = await new Promise(res=>{
+          const img = new Image();
+          img.onload = ()=>res(true);
+          img.onerror = ()=>res(false);
+          img.src = src;
+        });
+        if(ok){
+          const imgEl = document.createElement('img');
+          imgEl.src = src;
+          imgEl.alt = `Hodnocení ${val}`;
+          imgEl.className = 'face-img';
+          emojiSpan.replaceWith(imgEl);
+          break;
+        }
+      }
+      // když nic nenajdeme, emoji zůstane
+    })();
+  });
+})();
 </script>
 </body>
   <script>
