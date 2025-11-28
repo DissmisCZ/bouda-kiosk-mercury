@@ -16,7 +16,6 @@
       box-sizing: border-box;
     }
     img, svg, button { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
-    /* Pro jistotu deaktivuj odkazy */
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
@@ -24,17 +23,15 @@
       --gap: clamp(12px, 2vmin, 24px);
       --radius: clamp(14px, 2.2vmin, 22px);
 
-      /* Palette */
-      --bg-1: #060607;
-      --bg-2: #0f1012;
+      --bg-1: #050506;
+      --bg-2: #0c0d0f;
       --accent:#f0a344;
       --muted:#b3b3b3;
       --text:#ffffff;
 
       --tile-bg:#15171a;
       --tile-bg-hover:#1b1d21;
-      --tile-border:#2a2d32;
-      --glass: rgba(255,255,255,0.03);
+      --tile-border:#222427;
       --noise-opacity: 0.03;
     }
 
@@ -43,7 +40,7 @@
       margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
       color:var(--text);
-      background: linear-gradient(180deg, var(--bg-1), var(--bg-2) 60%);
+      background: linear-gradient(180deg, var(--bg-1), var(--bg-2) 70%);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
     }
@@ -54,6 +51,7 @@
       justify-content:center;
       overflow:hidden;
       position:relative;
+      min-height:100vh;
     }
 
     /* Dekorativní vrstvy pozadí (jemné, neinteraktivní) */
@@ -69,23 +67,21 @@
     /* jemný vignette + spotlight */
     body::before{
       background:
-        radial-gradient(60% 40% at 50% 10%, rgba(255,255,255,0.02), transparent 10%),
-        radial-gradient(40% 30% at 80% 70%, rgba(255,255,255,0.02), transparent 8%),
-        radial-gradient(50% 35% at 20% 70%, rgba(255,255,255,0.015), transparent 12%),
-        linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 90%);
+        radial-gradient(60% 40% at 50% 8%, rgba(255,255,255,0.02), transparent 10%),
+        radial-gradient(50% 35% at 18% 72%, rgba(255,255,255,0.012), transparent 12%),
+        linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.30) 92%);
       mix-blend-mode: overlay;
       opacity:0.95;
     }
 
-    /* tenké diagonály a noise */
+    /* tenké diagonály a jemné noise */
     body::after{
       background:
-        linear-gradient(135deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 30%, transparent 30%),
-        linear-gradient(120deg, rgba(240,163,68,0.02) 0, transparent 40%),
+        linear-gradient(135deg, rgba(255,255,255,0.01) 0, rgba(255,255,255,0.01) 28%, transparent 28%),
         repeating-linear-gradient(90deg, rgba(255,255,255,var(--noise-opacity)) 0 1px, transparent 1px 6px);
-      opacity:0.95;
+      opacity:0.9;
       mix-blend-mode: soft-light;
-      transform: scale(1.02);
+      transform: scale(1.01);
       filter: blur(0.6px) saturate(0.98);
     }
 
@@ -100,67 +96,70 @@
       mix-blend-mode: overlay;
     }
 
+    /* KONTEJNER: centrální, VŽDY střed obrazovky */
     .container{
       width:min(1400px,96vw);
-      padding:clamp(14px,3vmin,48px);
-      display:grid;
-      grid-template-rows:auto auto auto;
-      row-gap:clamp(8px,1.6vmin,20px);
-      justify-items:center;
-      text-align:center;
+      padding:clamp(14px,3vmin,48px) 20px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:clamp(12px,2.2vmin,28px);
       position:relative;
       z-index:2; /* nad dekoracemi */
+      min-height:60vh;
     }
 
-    /* jemný glass panel za gridem pro separaci */
+    /* Subtle panel pod tlačítky - nyní zcela decentní (BEZ viditelného rámečku) */
     .panel {
       position:absolute;
       left:50%;
-      top:30%;
+      top:26%;
       transform:translateX(-50%);
       width:92%;
       max-width:1200px;
-      height:36%;
-      border-radius:24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      box-shadow: 0 10px 40px rgba(0,0,0,0.55);
-      border: 1px solid rgba(255,255,255,0.03);
+      height:34%;
+      border-radius:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      border: none; /* odstraněný rámeček */
       z-index:1;
       pointer-events:none;
       backdrop-filter: blur(6px) saturate(0.9);
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.0) 100%);
-    }
-
-    .brand{
-      color:var(--accent);
-      text-transform:uppercase;
-      letter-spacing:.2em;
-      font-weight:800;
-      font-size:clamp(28px,8vmin,92px)
+      opacity:0.65;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.0) 100%);
     }
 
     h1{
-      margin:clamp(12px,2vmin,20px) 0 0;
+      margin:12px 0 0;
       font-weight:900;
-      font-size:clamp(28px,6.2vmin,64px);
+      font-size:clamp(32px,6.2vmin,64px);
       line-height:1.02;
-      text-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      text-shadow: 0 6px 20px rgba(0,0,0,0.55);
     }
     .sub{
       margin:.6em 0 0;
       color:var(--muted);
-      font-size:clamp(16px,3vmin,22px)
+      font-size:clamp(15px,2.8vmin,22px)
     }
 
     .grid{
-      margin-top:clamp(28px,4vmin,36px);
+      margin-top:12px;
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
+      grid-template-columns:repeat(5, minmax(var(--tile), 1fr));
       gap:var(--gap);
       width:100%;
+      max-width:1200px;
       place-items:center;
       z-index:3;
+      justify-items:center;
     }
+
+    /* adaptivní: pokud je málo místa, promění se na auto-fit */
+    @media (max-width:1100px) {
+      .grid { grid-template-columns: repeat(auto-fit, minmax(var(--tile), 1fr)); }
+    }
+
     .cell{
       display:flex;
       flex-direction:column;
@@ -173,10 +172,10 @@
       border:none;
       cursor:pointer;
       border-radius:var(--radius);
-      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+      background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.06));
       box-shadow:
         0 0 0 1px var(--tile-border),
-        0 8px 36px rgba(0,0,0,0.6),
+        0 10px 40px rgba(0,0,0,0.6),
         inset 0 1px 0 rgba(255,255,255,0.02);
       display:grid;
       place-items:center;
@@ -187,21 +186,20 @@
       overflow:visible;
     }
     .btn::after{
-      /* subtilní glow při hover (není JS) */
       content:"";
       position:absolute;
       inset:0;
       border-radius:inherit;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.6);
       opacity:0;
       transition:opacity .18s;
       pointer-events:none;
     }
-    .btn:hover{ transform: translateY(-6px) scale(1.01); background:var(--tile-bg-hover); box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
+    .btn:hover{ transform: translateY(-6px) scale(1.01); background:var(--tile-bg-hover); box-shadow: 0 14px 48px rgba(0,0,0,0.72); }
     .btn:hover::after{ opacity:0.06; }
 
     .emoji{
-      font-size:calc(var(--tile) * .7); /* velicí smajlíci i na PC */
+      font-size:calc(var(--tile) * .7);
       line-height:1;
       display:block;
       width:72%; height:72%;
@@ -217,7 +215,7 @@
       color:var(--muted);
       font-size:clamp(13px,1.6vmin,18px);
       white-space:nowrap;
-      margin-top:8px;
+      margin-top:6px;
       z-index:3;
     }
 
@@ -227,11 +225,11 @@
       inset:0;
       display:grid;
       place-items:center;
-      background:rgba(0,0,0,0.45);
+      background:rgba(0,0,0,0.48);
       opacity:0;
       pointer-events:none;
       transition:opacity .12s ease;
-      z-index:10000; /* důležité: nahoře */
+      z-index:10000;
     }
     .overlay.show{
       opacity:1;
@@ -239,21 +237,21 @@
     }
 
     .thanks{
-      font-size:clamp(30px,6.6vmin,84px);
+      font-size:clamp(32px,8vmin,84px);
       line-height:1.02;
-      padding:clamp(12px,2vmin,22px) clamp(20px,3vmin,36px);
+      padding:clamp(12px,2vmin,26px) clamp(20px,3vmin,40px);
       border-radius:30px;
       color:#fff;
       border:1px solid rgba(240,163,68,0.12);
       background: linear-gradient(180deg, rgba(24,18,10,0.96), rgba(12,8,6,0.96));
-      box-shadow: 0 18px 60px rgba(3,3,3,0.75), 0 2px 0 rgba(255,255,255,0.02) inset;
-      transform:translateY(6px) scale(.98);
+      box-shadow: 0 22px 80px rgba(3,3,3,0.8), 0 2px 0 rgba(255,255,255,0.02) inset;
+      transform:translateY(8px) scale(.98);
       opacity:0;
       transition:transform .18s cubic-bezier(.2,.9,.2,1), opacity .18s;
       z-index:10001;
       max-width:92%;
       text-align:center;
-      font-weight:800;
+      font-weight:900;
       letter-spacing: -0.02em;
     }
     .overlay.show .thanks{
@@ -277,50 +275,51 @@
       backdrop-filter: blur(6px);
     }
 
-    /* Responsivita: menší rozestupy na mobilu */
+    /* Mobilní úpravy */
     @media (max-width:720px){
       .panel{ display:none; }
-      .grid{ margin-top:18px; gap:12px; }
-      .thanks{ font-size:clamp(22px,8vw,36px); padding:10px 16px; border-radius:16px; }
+      .grid{ margin-top:8px; gap:10px; }
+      .thanks{ font-size:clamp(20px,8vw,34px); padding:10px 14px; border-radius:14px; }
+      .container{ min-height:unset; padding:18px; }
     }
 
   </style>
 </head>
 <body>
-  <!-- Dekorativní noise vrstva -->
+  <!-- jemné zrnění přes celý layout -->
   <div class="noise" aria-hidden="true"></div>
 
-  <!-- jemný glass panel pro pozadí tlačítek -->
+  <!-- decentní panel, nyní bez viditelného hranového rámečku -->
   <div class="panel" aria-hidden="true"></div>
 
   <main class="container" aria-live="polite">
     <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
-    <section id="grid" class="grid">
-      <div class="cell">
+    <section id="grid" class="grid" role="list">
+      <div class="cell" role="listitem">
         <button class="btn" data-value="1" title="Velmi nespokojený">
           <span class="emoji">😡</span>
         </button>
         <div class="label">Velmi nespokojený</div>
       </div>
-      <div class="cell">
+      <div class="cell" role="listitem">
         <button class="btn" data-value="2" title="Nespokojený">
           <span class="emoji">🙁</span>
         </button>
         <div class="label">Nespokojený</div>
       </div>
-      <div class="cell">
+      <div class="cell" role="listitem">
         <button class="btn" data-value="3" title="Neutrální">
           <span class="emoji">😐</span>
         </button>
         <div class="label">Neutrální</div>
       </div>
-      <div class="cell">
+      <div class="cell" role="listitem">
         <button class="btn" data-value="4" title="Spokojený">
           <span class="emoji">🙂</span>
         </button>
         <div class="label">Spokojený</div>
       </div>
-      <div class="cell">
+      <div class="cell" role="listitem">
         <button class="btn" data-value="5" title="Velmi spokojený">
           <span class="emoji">😁</span>
         </button>
