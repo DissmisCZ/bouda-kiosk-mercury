@@ -7,7 +7,7 @@
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
+    /* Zákaz výběru a dlouhého podržení */
     html, body, * {
       -webkit-user-select: none !important;
       user-select: none !important;
@@ -15,30 +15,31 @@
       -webkit-tap-highlight-color: transparent;
     }
     img, svg, button { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
-    /* Pro jistotu deaktivuj odkazy */
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      --tile: clamp(160px, 26vh, 260px);
-      --gap: clamp(12px, 2vmin, 24px);
-      --radius: clamp(14px, 2.2vmin, 22px);
+      /* zvětšená maximální velikost dlaždic aby se na PC více natahly */
+      --tile: clamp(160px, 30vh, 340px);
+      --gap: clamp(12px, 2vmin, 28px);
+      --radius: clamp(14px, 2.2vmin, 24px);
       --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
       --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
-      --ray-green:#00a651;
-      --ray-yellow:#ffc82e;
+      --ray-green:#00994a; /* lehce upravené barvy */
+      --ray-yellow:#e1b62f;
     }
 
     html{
       height:100%;
       margin:0;
-      background:var(--bg);
+      background:var(--bg); /* černé pozadí */
       color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
     }
+
     body{
       height:100%;
       margin:0;
-      background:transparent;
+      background:transparent; /* průhledné, paprsky přes html vidět */
       color:var(--text);
       display:flex;
       align-items:center;
@@ -47,33 +48,42 @@
       position:relative;
     }
 
-    /* Paprsky – přicházejí shora z mimo obraz, jako v referenci */
+    /*
+      Paprsky: střed conic-gradient umístěn vysoko nad viewportem (mimo obraz)
+      -> paprsky "přichází shora". Různé úhly pro různou šířku.
+      Maskou zespoda omezíme, jak hluboko paprsky do scény zasahují (dolní třetina).
+    */
     body::before{
       content:"";
       position:fixed;
       inset:0;
+      /* střed hluboko nad viewportem (např. -200% výšky) */
       background:
         conic-gradient(
-          from 180deg at 50% -40%,   /* střed vysoko nad viewportem */
-          var(--ray-green)   -8deg   6deg,
-          transparent         6deg  16deg,
-          var(--ray-yellow)  16deg  32deg,
-          transparent        32deg  44deg,
-          var(--ray-green)   44deg  60deg,
-          transparent        60deg  72deg,
-          var(--ray-yellow)  72deg  94deg,
-          transparent        94deg 110deg,
-          var(--ray-green)  110deg 134deg,
-          transparent       134deg 150deg,
-          var(--ray-yellow) 150deg 178deg,
-          transparent       178deg 200deg
+          from 180deg at 50% -200%,
+          /* nepravidelné úhly, střídání zelené/žluté */
+          var(--ray-green)   -12deg   6deg,
+          transparent         6deg  18deg,
+          var(--ray-yellow)  18deg  38deg,
+          transparent        38deg  52deg,
+          var(--ray-green)   52deg  66deg,
+          transparent        66deg  78deg,
+          var(--ray-yellow)  78deg 104deg,
+          transparent       104deg 120deg,
+          var(--ray-green)  120deg 136deg,
+          transparent       136deg 150deg,
+          var(--ray-yellow) 150deg 176deg,
+          transparent       176deg 200deg
         );
-      /* trošku usekneme spodek, aby se paprsky ztrácely */
-      mask: linear-gradient(to bottom, #000 0 75%, transparent 100%);
-      -webkit-mask: linear-gradient(to bottom, #000 0 75%, transparent 100%);
-      opacity:.9;
+
+      /* Paprsky necháme zasahovat z vršku až do spodní třetiny.
+         #000 = viditelné, transparent = skryté. */
+      mask: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+      -webkit-mask: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+
+      opacity:0.98;
       pointer-events:none;
-      z-index:0;
+      z-index:0; /* nad background (html), pod obsahem */
     }
 
     .container{
@@ -85,27 +95,19 @@
       justify-items:center;
       text-align:center;
       position:relative;
-      z-index:1;
-    }
-
-    .brand{ /* styl existuje, ale textový brand jsme odstranili z HTML */
-      color:var(--accent);
-      text-transform:uppercase;
-      letter-spacing:.2em;
-      font-weight:800;
-      font-size:clamp(28px,8vmin,92px)
+      z-index:1; /* nad paprsky */
     }
 
     h1{
       margin:clamp(12px,2vmin,20px) 0 0;
       font-weight:800;
       font-size:clamp(28px,6.2vmin,64px);
-      line-height:1.06
+      line-height:1.06;
     }
     .sub{
-      margin:.2em 0 0;
+      margin:.6em 0 0;
       color:var(--muted);
-      font-size:clamp(16px,3vmin,28px)
+      font-size:clamp(16px,3vmin,28px);
     }
 
     .grid{
@@ -114,13 +116,14 @@
       grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
       gap:var(--gap);
       width:100%;
-      place-items:center
+      place-items:center;
+      align-items:center;
     }
     .cell{
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:clamp(6px,1.2vmin,12px)
+      gap:clamp(6px,1.2vmin,12px);
     }
     .btn{
       width:var(--tile);
@@ -133,48 +136,82 @@
       display:grid;
       place-items:center;
       transition:transform .06s ease,background .15s,box-shadow .15s;
-      will-change:transform
+      will-change:transform;
     }
-    .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
-    .btn:active{transform:scale(.965)}
+    .btn:hover{background:var(--tile-bg-hover);}
+    .btn:active{transform:scale(.96);}
     .emoji{
-      font-size:calc(var(--tile) * .7);
-      line-height:1
+      font-size:calc(var(--tile) * .72); /* maximálně velcí smajlíci */
+      line-height:1;
     }
     .face-img{
-      width:72%;
-      height:72%;
+      width:78%;
+      height:78%;
       object-fit:contain;
       pointer-events:none;
     }
     .label{
       color:var(--muted);
       font-size:clamp(14px,1.9vmin,20px);
-      white-space:nowrap
+      white-space:nowrap;
+      margin-top:6px;
     }
+
+    /* overlay musí být NAD celým obsahem (z-index vyšší) */
     .overlay{
       position:fixed;
       inset:0;
       display:grid;
       place-items:center;
-      background:rgba(0,0,0,.62);
+      background:rgba(0,0,0,0.6);
       opacity:0;
       pointer-events:none;
-      transition:opacity .12s ease
+      transition:opacity .12s ease;
+      z-index:999; /* nad vším */
     }
-    .overlay.show{opacity:1;pointer-events:auto}
+    .overlay.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    /* velké "Děkujeme" dynamicky - využije co nejvíc prostoru bez přetažení */
     .thanks{
-      font-size:clamp(26px,4.8vmin,56px);
-      padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
-      border-radius:var(--radius);
-      color:#ffe6c7;
-      border:1px solid rgba(240,163,68,.6);
-      background:#161002;
-      transform:scale(.96);
+      max-width:90vw;
+      width:min(1200px, 92%);
+      padding:clamp(18px,2.6vmin,40px);
+      border-radius:clamp(12px,2vmin,28px);
+      color:#fff;
+      border:2px solid rgba(240,163,68,0.9);
+      background:linear-gradient(180deg, rgba(22,16,2,0.96), rgba(16,10,2,0.9));
+      box-shadow:0 18px 50px rgba(0,0,0,0.7);
+      transform:translateY(0) scale(.98);
       opacity:0;
-      transition:transform .12s,opacity .12s
+      transition:transform .16s cubic-bezier(.2,.9,.3,1), opacity .16s;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:clamp(8px,1.8vmin,18px);
     }
-    .overlay.show .thanks{transform:scale(1);opacity:1}
+    .overlay.show .thanks{
+      transform:translateY(0) scale(1);
+      opacity:1;
+    }
+
+    .thanks h2{
+      margin:0;
+      font-weight:900;
+      font-size:clamp(28px,6.5vw,64px);
+      text-align:center;
+      line-height:1.03;
+    }
+    .thanks p{
+      margin:0;
+      color:var(--muted);
+      font-size:clamp(16px,2.4vw,28px);
+      text-align:center;
+    }
+
     #installBtn{
       position:fixed;
       right:12px;
@@ -185,56 +222,70 @@
       background:#101010;
       color:#fff;
       font-size:14px;
-      display:none
+      display:none;
+      z-index:1000;
+    }
+
+    /* drobné ladění pro velmi úzké obrazovky */
+    @media (max-width:520px){
+      :root { --tile: clamp(120px, 22vh, 220px); }
+      .thanks{ padding:16px; }
+      .thanks h2{ font-size:clamp(22px,7.5vw,36px); }
     }
   </style>
 </head>
 <body>
   <main class="container" aria-live="polite">
+    <!-- textový brand odstraněn, logo (grafika) zůstává pokud je v pozadí obrázku -->
     <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
-    <section id="grid" class="grid">
+    <section id="grid" class="grid" aria-label="Hodnocení">
       <div class="cell">
-        <button class="btn" data-value="1" title="Velmi nespokojený">
+        <button class="btn" data-value="1" title="Velmi nespokojený" aria-label="Hodnocení 1">
           <span class="emoji">😡</span>
         </button>
         <div class="label">Velmi nespokojený</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="2" title="Nespokojený">
+        <button class="btn" data-value="2" title="Nespokojený" aria-label="Hodnocení 2">
           <span class="emoji">🙁</span>
         </button>
         <div class="label">Nespokojený</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="3" title="Neutrální">
+        <button class="btn" data-value="3" title="Neutrální" aria-label="Hodnocení 3">
           <span class="emoji">😐</span>
         </button>
         <div class="label">Neutrální</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="4" title="Spokojený">
+        <button class="btn" data-value="4" title="Spokojený" aria-label="Hodnocení 4">
           <span class="emoji">🙂</span>
         </button>
         <div class="label">Spokojený</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="5" title="Velmi spokojený">
+        <button class="btn" data-value="5" title="Velmi spokojený" aria-label="Hodnocení 5">
           <span class="emoji">😁</span>
         </button>
         <div class="label">Velmi spokojený</div>
       </div>
     </section>
 
+    <!-- text pod smajlíky -->
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
   </main>
 
+  <!-- overlay nad vším (z-index vysoký) -->
   <div id="overlay" class="overlay" aria-hidden="true">
-    <div class="thanks">Děkujeme za zpětnou vazbu!</div>
+    <div class="thanks" role="status" aria-live="polite">
+      <h2>Děkujeme za zpětnou vazbu!</h2>
+      <p>Tvůj hlas jsme zaznamenali — děkujeme.</p>
+    </div>
   </div>
 
   <button id="installBtn">Instalovat</button>
-  
+
 <script>
 /* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
 
@@ -259,7 +310,9 @@ function hardenBackLock() {
     }
   } catch(_) {}
   window.addEventListener('popstate', (e)=>{
+    // nedovolit odejít zpět – skoč rovnou dopředu
     try { history.go(1); } catch(_) {}
+    // pro jistotu historii zase „dotuč“
     try { history.pushState({b:3}, ''); } catch(_) {}
   });
 }
@@ -277,16 +330,19 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') ensureFullscreen();
 });
 window.addEventListener('pageshow', () => {
+  // po návratu z BFCache znovu vycpeme historii a fullscreen
   hardenBackLock();
   ensureFullscreen();
 });
 
-/* 4) Watchdog */
+/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
+      rychle a potichu obnov domovskou obrazovku */
 let lastUserTick = performance.now();
 document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
 document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
 
 function softRecover(){
+  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
   if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
     if (!location.hash || location.hash !== '#home') {
       history.replaceState(null, '', location.pathname + '#home');
@@ -296,9 +352,9 @@ function softRecover(){
   }
 }
 document.addEventListener('visibilitychange', softRecover);
-setInterval(softRecover, 1200);
+setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
 
-/* 5) Blok Backspace/Escape */
+/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Backspace' || e.key === 'Escape') {
     e.preventDefault();
