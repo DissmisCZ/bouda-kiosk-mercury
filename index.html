@@ -277,10 +277,6 @@
   <button id="installBtn">Instalovat</button>
 
 <script>
-/* ========== ADRESA JS (beze změny od tebe) ========== */
-/* všechna JSka (back-lock, webhook, PWA, face image fallback ...) se nahrávají níže beze změny
-   (zkopíruj tu část JS z tvého původního souboru, pokud ji tam nemáš). */
-
 /*** Webhook ***/
 const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxKT5x3dK3TIe77wfnG7tGTkOy7ftzil1hp0loCIVl9IC1sDOLRyenqtj70a4XBmvkb/exec";
 
@@ -313,6 +309,7 @@ async function flushBox(){
 }
 window.addEventListener("online", flushBox);
 
+/*** overlay + cooldown ***/
 const overlay = document.getElementById('overlay');
 const grid    = document.getElementById('grid');
 let cooldownUntil = 0;
@@ -320,6 +317,7 @@ const canVote = () => performance.now() >= cooldownUntil;
 function startCooldown(){ cooldownUntil = performance.now() + COOLDOWN_MS; grid.style.pointerEvents="none"; setTimeout(()=>grid.style.pointerEvents="auto", COOLDOWN_MS); }
 function showThanks(){ overlay.classList.add('show'); setTimeout(()=> overlay.classList.remove('show'), THANKS_MS); }
 
+/*** Hlasování ***/
 function sendOrQueue(payload){
   if(!navigator.onLine){
     const b = readBox(); b.push(payload); writeBox(b);
@@ -342,7 +340,50 @@ function vote(value){
 }
 document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click', ()=> vote(b.dataset.value), {passive:true}));
 
-/*** dynamické face1-face5 fallback (z původního souboru) ***/
+/*** Fullscreen + WakeLock po prvním kliknutí ***/
+async function enterFullscreenAndWake() {
+  try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); } catch(_) {}
+  try {
+    if ('wakeLock' in navigator) {
+      window._wl = await navigator.wakeLock.request('screen');
+      document.addEventListener('visibilitychange', async ()=>{
+        if (document.visibilityState === 'visible') {
+          try { window._wl = await navigator.wakeLock.request('screen'); } catch(_){}
+        }
+      });
+    }
+  } catch(_) {}
+}
+document.addEventListener('click', function once(){
+  enterFullscreenAndWake();
+  document.removeEventListener('click', once, {capture:true});
+}, {capture:true, once:true});
+
+/*** PWA: registrace SW ***/
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+/*** PWA: tlačítko „Instalovat“ ***/
+let defPrompt;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  defPrompt = e;
+  installBtn.style.display = 'block';
+});
+installBtn.addEventListener('click', async ()=>{
+  if(!defPrompt) return;
+  defPrompt.prompt();
+  await defPrompt.userChoice;
+  defPrompt = null;
+  installBtn.style.display = 'none';
+});
+
+/*** první tichý flush po startu ***/
+flushBox();
+
+/*** Dynamické face1–face5 (fallback na emoji) ***/
 (function setupFaces(){
   const exts = ['.png','.webp','.jpg','.jpeg','.svg'];
   document.querySelectorAll('.btn').forEach(btn=>{
@@ -373,8 +414,109 @@ document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click', ()=> v
   });
 })();
 
-/* zbytek tvého JS: back-lock, fullscreen, wakeLock, PWA register atd.
-   (zkopíruj přesně z původního souboru nebo mi dej vědět, jestli chceš abych ho sem doplnil) */
+/* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
+
+/* 0) Pomocný flag pro PWA (instalovaná vs. prohlížeč) */
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || (window.navigator.standalone === true);
+
+/* 1) Vynucený hash, aby historie měla co „držet“ */
+(function ensureHash(){
+  if (!location.hash) {
+    history.replaceState(null, '', location.pathname + '#home');
+  }
+})();
+
+/* 2) Pevné „vycpání“ historie (2 položky) a tvrdé vracení vpřed */
+function hardenBackLock() {
+  try {
+    if (!sessionStorage.getItem('backArmed')) {
+      history.pushState({b:1}, '');
+      history.pushState({b:2}, '');
+      sessionStorage.setItem('backArmed','1');
+    }
+  } catch(_) {}
+  window.addEventListener('popstate', (e)=>{
+    // nedovolit odejít zpět – skoč rovnou dopředu
+    try { history.go(1); } catch(_) {}
+    // pro jistotu historii zase „dotuč“
+    try { history.pushState({b:3}, ''); } catch(_) {}
+  });
+}
+window.addEventListener('load', hardenBackLock);
+
+/* 3) Držet fullscreen vždy, když se appka zviditelní */
+async function ensureFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch(_) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') ensureFullscreen();
+});
+window.addEventListener('pageshow', () => {
+  // po návratu z BFCache znovu vycpeme historii a fullscreen
+  hardenBackLock();
+  ensureFullscreen();
+});
+
+/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
+      rychle a potichu obnov domovskou obrazovku */
+let lastUserTick = performance.now();
+document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
+document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
+
+function softRecover(){
+  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
+  if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
+    if (!location.hash || location.hash !== '#home') {
+      history.replaceState(null, '', location.pathname + '#home');
+    }
+    hardenBackLock();
+    ensureFullscreen();
+  }
+}
+document.addEventListener('visibilitychange', softRecover);
+setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
+
+/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Backspace' || e.key === 'Escape') {
+    e.preventDefault();
+  }
+}, {passive:false});
 </script>
+
+<script>
+// 1) Zruš context menu, výběr, drag & drop
+addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
+addEventListener('selectstart', e => e.preventDefault(), {capture:true});
+addEventListener('dragstart',  e => e.preventDefault(), {capture:true});
+addEventListener('copy',       e => e.preventDefault(), {capture:true});
+addEventListener('cut',        e => e.preventDefault(), {capture:true});
+addEventListener('paste',      e => e.preventDefault(), {capture:true});
+
+// 2) Zneškodni odkazy a okna
+addEventListener('click', e => {
+  const a = e.target.closest('a, [role="link"], [onclick]');
+  if (a) e.preventDefault();
+}, {capture:true});
+window.open = function(){ return null; };
+
+// 3) Tvrdé „Back lock“ + auto-recovery (redundant safety)
+(function(){
+  try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
+  addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
+  if (!location.hash) { try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ } }
+  const recover=()=>{ if (document.visibilityState==='visible') {
+    try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ }
+  }};
+  addEventListener('visibilitychange', recover);
+  setInterval(recover, 1000);
+})();
+</script>
+
 </body>
 </html>
