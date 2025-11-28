@@ -19,12 +19,20 @@
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      /* větší využití výšky viewportu – funguje dobře i na PC */
       --tile: clamp(160px, 26vh, 260px);
       --gap: clamp(12px, 2vmin, 24px);
       --radius: clamp(14px, 2.2vmin, 22px);
-      --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
-      --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
+
+      /* Nové moderní barvy */
+      --bg:#0d0d0f;
+      --bg2:#0f1114;
+      --text:#fff;
+      --muted:#b3b3b3;
+      --accent:#f0a344;
+
+      --tile-bg:#15171a;
+      --tile-bg-hover:#1b1d21;
+      --tile-border:#2a2d32;
       --ray-green:#00a651;
       --ray-yellow:#ffc82e;
     }
@@ -32,49 +40,20 @@
     html{
       height:100%;
       margin:0;
-      background:var(--bg); /* černé pozadí na HTML */
+      background: linear-gradient(135deg, var(--bg), var(--bg2) 70%);
       color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
     }
     body{
       height:100%;
       margin:0;
-      background:transparent; /* tělo průhledné, aby šly vidět paprsky */
+      background:transparent;
       color:var(--text);
       display:flex;
       align-items:center;
       justify-content:center;
       overflow:hidden;
       position:relative;
-    }
-
-    /* šipky/paprsky z horní hrany, různé délky */
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      background:
-        conic-gradient(
-          from 180deg at 50% 0%,
-          var(--ray-green)   -8deg   6deg,
-          transparent         6deg  16deg,
-          var(--ray-yellow)  16deg  32deg,
-          transparent        32deg  44deg,
-          var(--ray-green)   44deg  60deg,
-          transparent        60deg  72deg,
-          var(--ray-yellow)  72deg  94deg,
-          transparent        94deg 110deg,
-          var(--ray-green)  110deg 134deg,
-          transparent       134deg 150deg,
-          var(--ray-yellow) 150deg 178deg,
-          transparent       178deg 200deg
-        );
-      /* paprsky začínají nahoře, dole se ztrácí → různé délky */
-      mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
-      -webkit-mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
-      opacity:.9;
-      pointer-events:none;
-      z-index:0;
     }
 
     .container{
@@ -86,10 +65,10 @@
       justify-items:center;
       text-align:center;
       position:relative;
-      z-index:1; /* obsah nad paprsky */
+      z-index:1; /* obsah nad pozadím */
     }
 
-    .brand{ /* styl existuje, ale textový brand jsme odstranili z HTML */
+    .brand{
       color:var(--accent);
       text-transform:uppercase;
       letter-spacing:.2em;
@@ -130,13 +109,13 @@
       cursor:pointer;
       border-radius:var(--radius);
       background:var(--tile-bg);
-      box-shadow:0 0 0 1px var(--tile-border);
+      box-shadow:0 0 0 1px var(--tile-border), 0 4px 18px rgba(0,0,0,0.35);
       display:grid;
       place-items:center;
       transition:transform .06s ease,background .15s,box-shadow .15s;
       will-change:transform
     }
-    .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
+    .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #36393d, 0 6px 22px rgba(0,0,0,0.45)}
     .btn:active{transform:scale(.965)}
     .emoji{
       font-size:calc(var(--tile) * .7); /* velicí smajlíci i na PC */
