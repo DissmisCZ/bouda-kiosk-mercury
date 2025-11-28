@@ -138,7 +138,6 @@
       font-size:clamp(15px,2.8vmin,22px)
     }
 
-    /* pevná 5-sloupcová síť pro široké obrazovky, auto-fit pro menší */
     .grid{
       margin-top:12px;
       display:grid;
@@ -175,14 +174,16 @@
         0 0 0 1px var(--tile-border),
         0 10px 40px rgba(0,0,0,0.6),
         inset 0 1px 0 rgba(255,255,255,0.02);
-      display:flex;                /* changed from grid -> flex */
-      align-items:center;          /* vertical centering */
-      justify-content:center;      /* horizontal centering */
+      display:flex;
+      align-items:center;
+      justify-content:center;
       transition:transform .12s cubic-bezier(.2,.9,.2,1), background .15s, box-shadow .15s;
       will-change:transform;
       position:relative;
       z-index:3;
       overflow:visible;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .btn::after{
       content:"";
@@ -194,25 +195,34 @@
       transition:opacity .18s;
       pointer-events:none;
     }
-    .btn:hover{ transform: translateY(-6px) scale(1.01); background:var(--tile-bg-hover); box-shadow: 0 14px 48px rgba(0,0,0,0.72); }
-    .btn:hover::after{ opacity:0.06; }
 
-    /* emoji jako block-level centered box; přesně 72% rozměru tlačítka */
+    /* NIKDY nepoužívat :hover/:active pro tlačítka kioskově — používáme třídy */
+    .btn.hover {
+      transform: translateY(-6px) scale(1.01);
+      background: var(--tile-bg-hover);
+      box-shadow: 0 14px 48px rgba(0,0,0,0.72);
+    }
+    .btn.hover::after{ opacity:0.06; }
+
+    .btn.active {
+      transform: scale(.97);
+      transition: transform .06s ease;
+    }
+
     .emoji{
       display:inline-flex;
       align-items:center;
       justify-content:center;
       width:72%;
       height:72%;
-      font-size:calc(var(--tile) * 0.62); /* doladěno aby emoji sedělo dobře */
-      line-height:1;        /* důležité pro emoji */
+      font-size:calc(var(--tile) * 0.62);
+      line-height:1;
       margin:0;
       padding:0;
       vertical-align:middle;
       -webkit-font-smoothing:antialiased;
     }
 
-    /* obrázky faceX přesně do stejného boxu jako emoji */
     .face-img{
       display:inline-block;
       width:72%;
@@ -233,7 +243,7 @@
       z-index:3;
     }
 
-    /* Overlay / thanks: VŽDY NAD VŠÍM (větší a nahoře) */
+    /* Overlay / thanks: VŽDY NAD VŠÍM */
     .overlay{
       position:fixed;
       inset:0;
@@ -463,7 +473,25 @@ const overlay = document.getElementById('overlay');
 const grid    = document.getElementById('grid');
 let cooldownUntil = 0;
 const canVote = () => performance.now() >= cooldownUntil;
-function startCooldown(){ cooldownUntil = performance.now() + COOLDOWN_MS; grid.style.pointerEvents="none"; setTimeout(()=>grid.style.pointerEvents="auto", COOLDOWN_MS); }
+
+/* helper: odebere přilepené stavy (hover/active) a blurne focus */
+function clearHoverStates() {
+  document.querySelectorAll('.btn').forEach(btn => {
+    try { btn.blur(); } catch(_) {}
+    btn.classList.remove('hover');
+    btn.classList.remove('active');
+  });
+}
+
+function startCooldown(){
+  cooldownUntil = performance.now() + COOLDOWN_MS;
+  grid.style.pointerEvents="none";
+  setTimeout(()=>{
+    grid.style.pointerEvents="auto";
+    // vyčistit přilepené hover/active stavy po skončení cooldownu
+    clearHoverStates();
+  }, COOLDOWN_MS);
+}
 function showThanks(){ overlay.classList.add('show'); setTimeout(()=> overlay.classList.remove('show'), THANKS_MS); }
 
 /*** Hlasování ***/
@@ -563,8 +591,51 @@ flushBox();
   });
 })();
 </script>
-</body>
-  <script>
+
+<script>
+/* ===== UI-only helpers: spolehlivě přidáme/odebereme .hover/.active podle pointer událostí.
+   To je bezpečný UI patch — nic z obchodní logiky to nemění. ===== */
+
+(function uiPointerStates(){
+  const buttons = document.querySelectorAll('.btn');
+
+  buttons.forEach(btn=>{
+    // pointerdown -> aktivní
+    btn.addEventListener('pointerdown', (e)=>{
+      btn.classList.add('active');
+      // remove potential hover to avoid conflict when pressing
+      btn.classList.remove('hover');
+    }, {passive:true});
+
+    // pointerup + pointercancel -> remove active
+    btn.addEventListener('pointerup', ()=> btn.classList.remove('active'), {passive:true});
+    btn.addEventListener('pointercancel', ()=> btn.classList.remove('active'), {passive:true});
+    btn.addEventListener('pointerout', ()=> {
+      // pokud ukazatel opustí prvek, smaž hover + active
+      btn.classList.remove('hover');
+      btn.classList.remove('active');
+    }, {passive:true});
+
+    // pointerover -> hover (works for mouse + stylus; on touch it usually doesn't fire)
+    btn.addEventListener('pointerover', ()=> btn.classList.add('hover'), {passive:true});
+    btn.addEventListener('pointerleave', ()=> {
+      btn.classList.remove('hover');
+      btn.classList.remove('active');
+    }, {passive:true});
+
+    // focus/blur fallback (keyboard / accessibility)
+    btn.addEventListener('focus', ()=> btn.classList.add('hover'));
+    btn.addEventListener('blur', ()=> { btn.classList.remove('hover'); btn.classList.remove('active'); });
+  });
+
+  // Extra safety: if any persistent :hover-like styles remain due to platform, clear them on touchend globally
+  window.addEventListener('touchend', ()=> setTimeout(()=> {
+    document.querySelectorAll('.btn.hover, .btn.active').forEach(b=> { b.classList.remove('hover'); b.classList.remove('active'); });
+  }, 20), {passive:true});
+})();
+
+/* ========= ostatní původní scripts (back lock atd.) jsou beze změny ========= */
+
 // 1) Zruš context menu, výběr, drag & drop
 addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
 addEventListener('selectstart', e => e.preventDefault(), {capture:true});
@@ -580,7 +651,7 @@ addEventListener('click', e => {
 }, {capture:true});
 window.open = function(){ return null; };
 
-// 3) Tvrdé „Back lock“ + auto-recovery
+// 3) Tvrdé „Back lock“ + auto-recovery (doplněno níže v originálním scriptu, ale řazeno zde jako safety)
 (function(){
   try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
   addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
@@ -591,6 +662,8 @@ window.open = function(){ return null; };
   addEventListener('visibilitychange', recover);
   setInterval(recover, 1000);
 })();
+
 </script>
 
+</body>
 </html>
