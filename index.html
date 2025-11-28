@@ -7,37 +7,40 @@
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    /* Zákaz výběru a dlouhého podržení */
+    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
     html, body, * {
       -webkit-user-select: none !important;
       user-select: none !important;
       -webkit-touch-callout: none !important;
       -webkit-tap-highlight-color: transparent;
-      box-sizing: border-box;
     }
     img, svg, button { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
+    /* Pro jistotu deaktivuj odkazy */
     a, [role="link"] { pointer-events: none !important; }
 
     :root{
-      --gap: clamp(12px, 2vmin, 28px);
-      --radius: clamp(14px, 2.2vmin, 24px);
+      /* větší využití výšky viewportu – funguje dobře i na PC */
+      --tile: clamp(160px, 26vh, 260px);
+      --gap: clamp(12px, 2vmin, 24px);
+      --radius: clamp(14px, 2.2vmin, 22px);
       --bg:#000; --text:#fff; --muted:#bfc0c9; --accent:#f0a344;
       --tile-bg:#111; --tile-bg-hover:#151515; --tile-border:#242424;
-      --green:#00994a; --yellow:#e1b62f;
-      --container-max-width: 1400px;
+      --ray-green:#00a651;
+      --ray-yellow:#ffc82e;
     }
 
     html{
       height:100%;
       margin:0;
-      background:var(--bg);
+      background:var(--bg); /* černé pozadí na HTML */
       color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
     }
     body{
-      min-height:100vh;
+      height:100%;
       margin:0;
-      background:transparent;
+      background:transparent; /* tělo průhledné, aby šly vidět paprsky */
+      color:var(--text);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -45,19 +48,37 @@
       position:relative;
     }
 
-    /* INLINE SVG pozadí (mikádo) */
-    .spikes{
+    /* šipky/paprsky z horní hrany, různé délky */
+    body::before{
+      content:"";
       position:fixed;
       inset:0;
-      width:100%;
-      height:100%;
+      background:
+        conic-gradient(
+          from 180deg at 50% 0%,
+          var(--ray-green)   -8deg   6deg,
+          transparent         6deg  16deg,
+          var(--ray-yellow)  16deg  32deg,
+          transparent        32deg  44deg,
+          var(--ray-green)   44deg  60deg,
+          transparent        60deg  72deg,
+          var(--ray-yellow)  72deg  94deg,
+          transparent        94deg 110deg,
+          var(--ray-green)  110deg 134deg,
+          transparent       134deg 150deg,
+          var(--ray-yellow) 150deg 178deg,
+          transparent       178deg 200deg
+        );
+      /* paprsky začínají nahoře, dole se ztrácí → různé délky */
+      mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
+      -webkit-mask: linear-gradient(to bottom, #000 0 70%, transparent 100%);
+      opacity:.9;
       pointer-events:none;
       z-index:0;
-      overflow:hidden;
     }
 
     .container{
-      width:min(var(--container-max-width),96vw);
+      width:min(1400px,96vw);
       padding:clamp(10px,3vmin,40px);
       display:grid;
       grid-template-rows:auto auto auto;
@@ -65,47 +86,46 @@
       justify-items:center;
       text-align:center;
       position:relative;
-      z-index:1; /* nad SVG */
+      z-index:1; /* obsah nad paprsky */
+    }
+
+    .brand{ /* styl existuje, ale textový brand jsme odstranili z HTML */
+      color:var(--accent);
+      text-transform:uppercase;
+      letter-spacing:.2em;
+      font-weight:800;
+      font-size:clamp(28px,8vmin,92px)
     }
 
     h1{
       margin:clamp(12px,2vmin,20px) 0 0;
       font-weight:800;
       font-size:clamp(28px,6.2vmin,64px);
-      line-height:1.06;
+      line-height:1.06
     }
     .sub{
-      margin:.6em 0 0;
+      margin:.2em 0 0;
       color:var(--muted);
-      font-size:clamp(16px,3vmin,28px);
+      font-size:clamp(16px,3vmin,28px)
     }
 
-    /*
-      GRID upraven tak, aby byly vždy 5 sloupců (jedna řada),
-      každý sloupec zabere stejnou šířku kontejneru → bez posuvníku.
-    */
     .grid{
       margin-top:clamp(4px,1vmin,10px);
       display:grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns:repeat(auto-fit,minmax(var(--tile),1fr));
       gap:var(--gap);
       width:100%;
-      align-items:start;
-      justify-items:center;
+      place-items:center
     }
-
     .cell{
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:clamp(6px,1.2vmin,12px);
-      width:100%;
+      gap:clamp(6px,1.2vmin,12px)
     }
-
-    /* tlačítko zabere celý sloupec, je čtvercové díky aspect-ratio */
     .btn{
-      width:100%;
-      aspect-ratio: 1 / 1;
+      width:var(--tile);
+      height:var(--tile);
       border:none;
       cursor:pointer;
       border-radius:var(--radius);
@@ -114,73 +134,48 @@
       display:grid;
       place-items:center;
       transition:transform .06s ease,background .15s,box-shadow .15s;
-      will-change:transform;
+      will-change:transform
     }
-    .btn:hover{background:var(--tile-bg-hover);}
-    .btn:active{transform:scale(.96);}
-
-    /* emoji se dynamicky škáluje podle viewportu / dostupného místa */
+    .btn:hover{background:var(--tile-bg-hover);box-shadow:0 0 0 1px #2d2d2d}
+    .btn:active{transform:scale(.965)}
     .emoji{
-      display:block;
-      font-size: clamp(28px, 6.4vmin, calc((100% - 16px) * 0.72));
-      line-height:1;
+      font-size:calc(var(--tile) * .7); /* velicí smajlíci i na PC */
+      line-height:1
     }
     .face-img{
-      width:78%;
-      height:78%;
+      width:72%;
+      height:72%;
       object-fit:contain;
       pointer-events:none;
-      display:block;
     }
     .label{
       color:var(--muted);
-      font-size:clamp(12px,1.6vmin,18px);
-      white-space:nowrap;
-      margin-top:6px;
+      font-size:clamp(14px,1.9vmin,20px);
+      white-space:nowrap
     }
-
-    /* overlay nad vším aby děkovací okno není za smajlíky */
     .overlay{
       position:fixed;
       inset:0;
       display:grid;
       place-items:center;
-      background:rgba(0,0,0,0.55);
+      background:rgba(0,0,0,.62);
       opacity:0;
       pointer-events:none;
-      transition:opacity .12s ease;
-      z-index:999;
+      transition:opacity .12s ease
     }
-    .overlay.show{
-      opacity:1;
-      pointer-events:auto;
-    }
-
+    .overlay.show{opacity:1;pointer-events:auto}
     .thanks{
-      max-width:92vw;
-      width:min(1100px,92%);
-      padding:clamp(18px,2.6vmin,36px);
-      border-radius:clamp(12px,2vmin,24px);
-      color:#fff;
-      border:2px solid rgba(240,163,68,0.95);
-      background:linear-gradient(180deg, rgba(22,16,2,0.98), rgba(16,10,2,0.95));
-      box-shadow:0 28px 60px rgba(0,0,0,0.7);
-      transform:translateY(0) scale(.98);
+      font-size:clamp(26px,4.8vmin,56px);
+      padding:clamp(10px,1.6vmin,18px) clamp(16px,2.4vmin,28px);
+      border-radius:var(--radius);
+      color:#ffe6c7;
+      border:1px solid rgba(240,163,68,.6);
+      background:#161002;
+      transform:scale(.96);
       opacity:0;
-      transition:transform .14s cubic-bezier(.2,.9,.3,1), opacity .14s;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:clamp(8px,1.8vmin,18px);
-      text-align:center;
+      transition:transform .12s,opacity .12s
     }
-    .overlay.show .thanks{
-      transform:translateY(0) scale(1);
-      opacity:1;
-    }
-    .thanks h2{ margin:0; font-weight:900; font-size:clamp(24px,5.5vw,56px); line-height:1.03; }
-    .thanks p{ margin:0; color:var(--muted); font-size:clamp(14px,2.2vw,22px); }
-
+    .overlay.show .thanks{transform:scale(1);opacity:1}
     #installBtn{
       position:fixed;
       right:12px;
@@ -191,90 +186,134 @@
       background:#101010;
       color:#fff;
       font-size:14px;
-      display:none;
-      z-index:1000;
-    }
-
-    /* když se kontejner zúží tak, že by sloupec byl menší než minimum,
-       zmenšíme fonty, aby to pořád vypadalo schovaně (nepřidáváme scroll). */
-    @media (max-width:520px){
-      .grid{ grid-template-columns: repeat(5, minmax(0, 1fr)); }
-      .emoji{ font-size: clamp(20px, 8vmin, 72px); }
+      display:none
     }
   </style>
 </head>
 <body>
-  <!-- SVG "mikádo" - ostré trojúhelníky vycházející z horní hrany -->
-  <svg class="spikes" viewBox="0 0 1200 800" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-    <defs>
-      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="#e7c34d" />
-        <stop offset="100%" stop-color="#c79b28" />
-      </linearGradient>
-      <linearGradient id="g2" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="#00a651" />
-        <stop offset="100%" stop-color="#007a39" />
-      </linearGradient>
-      <linearGradient id="g3" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="#e1b62f" />
-        <stop offset="100%" stop-color="#b78f1e" />
-      </linearGradient>
-    </defs>
-
-    <!-- ostré trojúhelníky (body mimo horní hranu, končí v dolní třetině) -->
-    <polygon points="-200,-120  200,520  340,520  900,-120" fill="url(#g3)"/>
-    <polygon points="120,-140  360,520  460,520  240,-140" fill="url(#g2)"/>
-    <polygon points="520,-180  620,520  560,520  500,-180" fill="url(#g2)"/>
-    <polygon points="680,-160  920,520  780,520  700,-160" fill="url(#g1)"/>
-    <polygon points="980,-140  1180,520  1060,520  940,-140" fill="url(#g2)"/>
-  </svg>
-
   <main class="container" aria-live="polite">
-    <section id="grid" class="grid" aria-label="Hodnocení">
+    <!-- textový brand BOUDA BURGERS je pryč, logo zůstává v grafice -->
+
+    <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
+    <section id="grid" class="grid">
       <div class="cell">
-        <button class="btn" data-value="1" title="Velmi nespokojený" aria-label="Hodnocení 1">
+        <button class="btn" data-value="1" title="Velmi nespokojený">
           <span class="emoji">😡</span>
         </button>
         <div class="label">Velmi nespokojený</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="2" title="Nespokojený" aria-label="Hodnocení 2">
+        <button class="btn" data-value="2" title="Nespokojený">
           <span class="emoji">🙁</span>
         </button>
         <div class="label">Nespokojený</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="3" title="Neutrální" aria-label="Hodnocení 3">
+        <button class="btn" data-value="3" title="Neutrální">
           <span class="emoji">😐</span>
         </button>
         <div class="label">Neutrální</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="4" title="Spokojený" aria-label="Hodnocení 4">
+        <button class="btn" data-value="4" title="Spokojený">
           <span class="emoji">🙂</span>
         </button>
         <div class="label">Spokojený</div>
       </div>
       <div class="cell">
-        <button class="btn" data-value="5" title="Velmi spokojený" aria-label="Hodnocení 5">
+        <button class="btn" data-value="5" title="Velmi spokojený">
           <span class="emoji">😁</span>
         </button>
         <div class="label">Velmi spokojený</div>
       </div>
     </section>
 
+    <!-- TEXT POD SMAJLÍKY -->
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
   </main>
 
   <div id="overlay" class="overlay" aria-hidden="true">
-    <div class="thanks" role="status" aria-live="polite">
-      <h2>Děkujeme za zpětnou vazbu!</h2>
-      <p>Tvůj hlas jsme zaznamenali — děkujeme.</p>
-    </div>
+    <div class="thanks">Děkujeme za zpětnou vazbu!</div>
   </div>
 
   <button id="installBtn">Instalovat</button>
+  
+<script>
+/* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
+
+/* 0) Pomocný flag pro PWA (instalovaná vs. prohlížeč) */
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || (window.navigator.standalone === true);
+
+/* 1) Vynucený hash, aby historie měla co „držet“ */
+(function ensureHash(){
+  if (!location.hash) {
+    history.replaceState(null, '', location.pathname + '#home');
+  }
+})();
+
+/* 2) Pevné „vycpání“ historie (2 položky) a tvrdé vracení vpřed */
+function hardenBackLock() {
+  try {
+    if (!sessionStorage.getItem('backArmed')) {
+      history.pushState({b:1}, '');
+      history.pushState({b:2}, '');
+      sessionStorage.setItem('backArmed','1');
+    }
+  } catch(_) {}
+  window.addEventListener('popstate', (e)=>{
+    // nedovolit odejít zpět – skoč rovnou dopředu
+    try { history.go(1); } catch(_) {}
+    // pro jistotu historii zase „dotuč“
+    try { history.pushState({b:3}, ''); } catch(_) {}
+  });
+}
+window.addEventListener('load', hardenBackLock);
+
+/* 3) Držet fullscreen vždy, když se appka zviditelní */
+async function ensureFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch(_) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') ensureFullscreen();
+});
+window.addEventListener('pageshow', () => {
+  // po návratu z BFCache znovu vycpeme historii a fullscreen
+  hardenBackLock();
+  ensureFullscreen();
+});
+
+/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
+      rychle a potichu obnov domovskou obrazovku */
+let lastUserTick = performance.now();
+document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
+document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
+
+function softRecover(){
+  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
+  if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
+    if (!location.hash || location.hash !== '#home') {
+      history.replaceState(null, '', location.pathname + '#home');
+    }
+    hardenBackLock();
+    ensureFullscreen();
+  }
+}
+document.addEventListener('visibilitychange', softRecover);
+setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
+
+/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Backspace' || e.key === 'Escape') {
+    e.preventDefault();
+  }
+}, {passive:false});
+</script>
 
 <script>
 /*** Webhook ***/
@@ -309,7 +348,7 @@ async function flushBox(){
 }
 window.addEventListener("online", flushBox);
 
-/*** overlay + cooldown ***/
+/*** „Děkujeme“ + cooldown ***/
 const overlay = document.getElementById('overlay');
 const grid    = document.getElementById('grid');
 let cooldownUntil = 0;
@@ -413,83 +452,9 @@ flushBox();
     })();
   });
 })();
-
-/* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
-
-/* 0) Pomocný flag pro PWA (instalovaná vs. prohlížeč) */
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                  || (window.navigator.standalone === true);
-
-/* 1) Vynucený hash, aby historie měla co „držet“ */
-(function ensureHash(){
-  if (!location.hash) {
-    history.replaceState(null, '', location.pathname + '#home');
-  }
-})();
-
-/* 2) Pevné „vycpání“ historie (2 položky) a tvrdé vracení vpřed */
-function hardenBackLock() {
-  try {
-    if (!sessionStorage.getItem('backArmed')) {
-      history.pushState({b:1}, '');
-      history.pushState({b:2}, '');
-      sessionStorage.setItem('backArmed','1');
-    }
-  } catch(_) {}
-  window.addEventListener('popstate', (e)=>{
-    // nedovolit odejít zpět – skoč rovnou dopředu
-    try { history.go(1); } catch(_) {}
-    // pro jistotu historii zase „dotuč“
-    try { history.pushState({b:3}, ''); } catch(_) {}
-  });
-}
-window.addEventListener('load', hardenBackLock);
-
-/* 3) Držet fullscreen vždy, když se appka zviditelní */
-async function ensureFullscreen() {
-  try {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-    }
-  } catch(_) {}
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') ensureFullscreen();
-});
-window.addEventListener('pageshow', () => {
-  // po návratu z BFCache znovu vycpeme historii a fullscreen
-  hardenBackLock();
-  ensureFullscreen();
-});
-
-/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
-      rychle a potichu obnov domovskou obrazovku */
-let lastUserTick = performance.now();
-document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
-document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
-
-function softRecover(){
-  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
-  if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
-    if (!location.hash || location.hash !== '#home') {
-      history.replaceState(null, '', location.pathname + '#home');
-    }
-    hardenBackLock();
-    ensureFullscreen();
-  }
-}
-document.addEventListener('visibilitychange', softRecover);
-setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
-
-/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
-document.addEventListener('keydown', (e)=>{
-  if (e.key === 'Backspace' || e.key === 'Escape') {
-    e.preventDefault();
-  }
-}, {passive:false});
 </script>
-
-<script>
+</body>
+  <script>
 // 1) Zruš context menu, výběr, drag & drop
 addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
 addEventListener('selectstart', e => e.preventDefault(), {capture:true});
@@ -505,7 +470,7 @@ addEventListener('click', e => {
 }, {capture:true});
 window.open = function(){ return null; };
 
-// 3) Tvrdé „Back lock“ + auto-recovery (redundant safety)
+// 3) Tvrdé „Back lock“ + auto-recovery
 (function(){
   try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
   addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
@@ -518,5 +483,4 @@ window.open = function(){ return null; };
 })();
 </script>
 
-</body>
 </html>
