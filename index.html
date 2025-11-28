@@ -64,7 +64,6 @@
       z-index:0;
     }
 
-    /* jemný vignette + spotlight */
     body::before{
       background:
         radial-gradient(60% 40% at 50% 8%, rgba(255,255,255,0.02), transparent 10%),
@@ -74,7 +73,6 @@
       opacity:0.95;
     }
 
-    /* tenké diagonály a jemné noise */
     body::after{
       background:
         linear-gradient(135deg, rgba(255,255,255,0.01) 0, rgba(255,255,255,0.01) 28%, transparent 28%),
@@ -85,7 +83,6 @@
       filter: blur(0.6px) saturate(0.98);
     }
 
-    /* jemné zrnění přes obsah pro „materiálový“ look */
     .noise {
       position:fixed;
       inset:0;
@@ -96,7 +93,6 @@
       mix-blend-mode: overlay;
     }
 
-    /* KONTEJNER: centrální, VŽDY střed obrazovky */
     .container{
       width:min(1400px,96vw);
       padding:clamp(14px,3vmin,48px) 20px;
@@ -106,11 +102,10 @@
       justify-content:center;
       gap:clamp(12px,2.2vmin,28px);
       position:relative;
-      z-index:2; /* nad dekoracemi */
+      z-index:2;
       min-height:60vh;
     }
 
-    /* Subtle panel pod tlačítky - nyní zcela decentní (BEZ viditelného rámečku) */
     .panel {
       position:absolute;
       left:50%;
@@ -122,7 +117,7 @@
       border-radius:18px;
       background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-      border: none; /* odstraněný rámeček */
+      border: none;
       z-index:1;
       pointer-events:none;
       backdrop-filter: blur(6px) saturate(0.9);
@@ -143,6 +138,7 @@
       font-size:clamp(15px,2.8vmin,22px)
     }
 
+    /* pevná 5-sloupcová síť pro široké obrazovky, auto-fit pro menší */
     .grid{
       margin-top:12px;
       display:grid;
@@ -154,8 +150,6 @@
       z-index:3;
       justify-items:center;
     }
-
-    /* adaptivní: pokud je málo místa, promění se na auto-fit */
     @media (max-width:1100px) {
       .grid { grid-template-columns: repeat(auto-fit, minmax(var(--tile), 1fr)); }
     }
@@ -164,8 +158,12 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:clamp(6px,1.2vmin,12px)
+      gap:clamp(6px,1.2vmin,12px);
+      width:100%;
     }
+
+    /* ===== REÁLNÁ OPRAVA: perfektní centrování smajlíků =====
+       přepnuto na flex + align/justify center; emoji je inline-flex */
     .btn{
       width:var(--tile);
       height:var(--tile);
@@ -177,8 +175,9 @@
         0 0 0 1px var(--tile-border),
         0 10px 40px rgba(0,0,0,0.6),
         inset 0 1px 0 rgba(255,255,255,0.02);
-      display:grid;
-      place-items:center;
+      display:flex;                /* changed from grid -> flex */
+      align-items:center;          /* vertical centering */
+      justify-content:center;      /* horizontal centering */
       transition:transform .12s cubic-bezier(.2,.9,.2,1), background .15s, box-shadow .15s;
       will-change:transform;
       position:relative;
@@ -198,19 +197,34 @@
     .btn:hover{ transform: translateY(-6px) scale(1.01); background:var(--tile-bg-hover); box-shadow: 0 14px 48px rgba(0,0,0,0.72); }
     .btn:hover::after{ opacity:0.06; }
 
+    /* emoji jako block-level centered box; přesně 72% rozměru tlačítka */
     .emoji{
-      font-size:calc(var(--tile) * .7);
-      line-height:1;
-      display:block;
-      width:72%; height:72%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:72%;
+      height:72%;
+      font-size:calc(var(--tile) * 0.62); /* doladěno aby emoji sedělo dobře */
+      line-height:1;        /* důležité pro emoji */
+      margin:0;
+      padding:0;
+      vertical-align:middle;
+      -webkit-font-smoothing:antialiased;
     }
+
+    /* obrázky faceX přesně do stejného boxu jako emoji */
     .face-img{
+      display:inline-block;
       width:72%;
       height:72%;
       object-fit:contain;
+      object-position:center center;
       pointer-events:none;
-      display:block;
+      margin:0;
+      padding:0;
+      vertical-align:middle;
     }
+
     .label{
       color:var(--muted);
       font-size:clamp(13px,1.6vmin,18px);
@@ -219,7 +233,7 @@
       z-index:3;
     }
 
-    /* Overlay / thanks: VŽDY NAD VŠÍM */
+    /* Overlay / thanks: VŽDY NAD VŠÍM (větší a nahoře) */
     .overlay{
       position:fixed;
       inset:0;
@@ -281,19 +295,17 @@
       .grid{ margin-top:8px; gap:10px; }
       .thanks{ font-size:clamp(20px,8vw,34px); padding:10px 14px; border-radius:14px; }
       .container{ min-height:unset; padding:18px; }
+      .emoji{ font-size:calc(var(--tile) * 0.58); }
+      .face-img{ width:70%; height:70%; }
     }
 
   </style>
 </head>
 <body>
-  <!-- jemné zrnění přes celý layout -->
   <div class="noise" aria-hidden="true"></div>
-
-  <!-- decentní panel, nyní bez viditelného hranového rámečku -->
   <div class="panel" aria-hidden="true"></div>
 
   <main class="container" aria-live="polite">
-    <!-- GRID: 1 (nejhorší) → 5 (nejlepší) zleva doprava -->
     <section id="grid" class="grid" role="list">
       <div class="cell" role="listitem">
         <button class="btn" data-value="1" title="Velmi nespokojený">
@@ -327,7 +339,6 @@
       </div>
     </section>
 
-    <!-- TEXT POD SMAJLÍKY -->
     <h1>Ohodnoť dnešní nákup</h1>
     <p class="sub">Jak spokojený/á jsi byl/a s nákupem?</p>
   </main>
