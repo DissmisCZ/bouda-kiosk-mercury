@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
+  <base href="/bouda-kiosk-mercury/">
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat") */
     html, body, * {
       -webkit-user-select: none !important;
       user-select: none !important;
@@ -54,7 +54,6 @@
       min-height:100vh;
     }
 
-    /* Dekorativní vrstvy pozadí (jemné, neinteraktivní) */
     body::before,
     body::after {
       content:"";
@@ -161,8 +160,6 @@
       width:100%;
     }
 
-    /* ===== REÁLNÁ OPRAVA: perfektní centrování smajlíků =====
-       přepnuto na flex + align/justify center; emoji je inline-flex */
     .btn{
       width:var(--tile);
       height:var(--tile);
@@ -196,7 +193,6 @@
       pointer-events:none;
     }
 
-    /* NIKDY nepoužívat :hover/:active pro tlačítka kioskově — používáme třídy */
     .btn.hover {
       transform: translateY(-6px) scale(1.01);
       background: var(--tile-bg-hover);
@@ -243,7 +239,6 @@
       z-index:3;
     }
 
-    /* Overlay / thanks: VŽDY NAD VŠÍM */
     .overlay{
       position:fixed;
       inset:0;
@@ -283,7 +278,6 @@
       opacity:1;
     }
 
-    /* Install button */
     #installBtn{
       position:fixed;
       right:12px;
@@ -299,7 +293,6 @@
       backdrop-filter: blur(6px);
     }
 
-    /* Mobilní úpravy */
     @media (max-width:720px){
       .panel{ display:none; }
       .grid{ margin-top:8px; gap:10px; }
@@ -358,22 +351,18 @@
   </div>
 
   <button id="installBtn">Instalovat</button>
-  
 <script>
 /* ========= ROBUSTNÍ ZÁMEK ZPĚT + AUTO OBNOVA + FULLSCREEN ========= */
 
-/* 0) Pomocný flag pro PWA (instalovaná vs. prohlížeč) */
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                   || (window.navigator.standalone === true);
 
-/* 1) Vynucený hash, aby historie měla co „držet“ */
 (function ensureHash(){
   if (!location.hash) {
     history.replaceState(null, '', location.pathname + '#home');
   }
 })();
 
-/* 2) Pevné „vycpání" historie (2 položky) a tvrdé vracení vpřed */
 function hardenBackLockOnce() {
   try {
     if (!sessionStorage.getItem('backArmed')) {
@@ -385,7 +374,6 @@ function hardenBackLockOnce() {
 }
 window.addEventListener('load', hardenBackLockOnce);
 
-/* 3) Držet fullscreen vždy, když se appka zviditelní */
 async function ensureFullscreen() {
   try {
     if (!document.fullscreenElement) {
@@ -393,23 +381,21 @@ async function ensureFullscreen() {
     }
   } catch(_) {}
 }
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') ensureFullscreen();
 });
+
 window.addEventListener('pageshow', () => {
-  // po návratu z BFCache znovu vycpeme historii a fullscreen
   hardenBackLockOnce();
   ensureFullscreen();
 });
 
-/* 4) Watchdog: když se náhodou dostaneme na splash/mezistav,
-      rychle a potichu obnov domovskou obrazovku */
 let lastUserTick = performance.now();
 document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), {passive:true});
 document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
 
 function softRecover(){
-  // Pokud jsme „viditelní", ale UI není interaktivní, přepíšeme url zpět na #home
   if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
     if (!location.hash || location.hash !== '#home') {
       history.replaceState(null, '', location.pathname + '#home');
@@ -419,9 +405,8 @@ function softRecover(){
   }
 }
 document.addEventListener('visibilitychange', softRecover);
-setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
+setInterval(softRecover, 1200);
 
-/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět" v některých klávesnicích */
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Backspace' || e.key === 'Escape') {
     e.preventDefault();
@@ -444,7 +429,6 @@ const writeBox = (v)=> localStorage.setItem(BOX_KEY, JSON.stringify(v));
 
 let flushing = false;
 
-// helper: fetch s timeout
 function fetchWithTimeout(url, opts = {}, timeout = 8000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -457,7 +441,6 @@ async function flushBox(){
   const box = readBox(); if(!box.length) return;
   flushing = true;
   try{
-    // pracujeme na kopii pole; pokud selže 1. request, přerušíme loop (vyhneme se tight-loop)
     while(box.length && navigator.onLine){
       const p = box[0];
       try{
@@ -466,9 +449,9 @@ async function flushBox(){
           headers:{ "Content-Type":"text/plain" },
           body: JSON.stringify(p), keepalive:true
         }, 8000);
+
         box.shift(); writeBox(box);
       } catch(err){
-        // pokud fetch selže (včetně abortu), opustíme cyklus — pokus bude znovu při "online" nebo dalším flushu
         break;
       }
     }
@@ -477,13 +460,12 @@ async function flushBox(){
 }
 window.addEventListener("online", flushBox);
 
-/*** „Děkujeme" + cooldown + robustní watchdog (prevent stuck overlay) ***/
+/*** „Děkujeme“ + cooldown + anti-stuck watchdog ***/
 const overlay = document.getElementById('overlay');
 const grid    = document.getElementById('grid');
 let cooldownUntil = 0;
 const canVote = () => performance.now() >= cooldownUntil;
 
-/* helper: odebere přilepené stavy (hover/active) a blurne focus */
 function clearHoverStates() {
   document.querySelectorAll('.btn').forEach(btn => {
     try { btn.blur(); } catch(_) {}
@@ -497,31 +479,28 @@ function startCooldown(){
   grid.style.pointerEvents="none";
   setTimeout(()=>{
     grid.style.pointerEvents="auto";
-    // vyčistit přilepené hover/active stavy po skončení cooldownu
     clearHoverStates();
   }, COOLDOWN_MS);
 }
 
-// Robustní thanks/watchdog
-const OVERLAY_STUCK_MARGIN = 2000; // ms tolerance navíc
+const OVERLAY_STUCK_MARGIN = 2000;
 let overlayShownAt = 0;
+
 function showThanks(){
   overlay.classList.add('show');
   overlayShownAt = Date.now();
-  // původní timeout (zachováme pro normální chování)
+
   setTimeout(()=> {
     overlay.classList.remove('show');
     overlayShownAt = 0;
   }, THANKS_MS);
 }
 
-// watchdog, který zajistí odejmutí overlay i když jsou timery throttled
 setInterval(()=> {
   try {
     if (overlayShownAt && Date.now() - overlayShownAt > (THANKS_MS + OVERLAY_STUCK_MARGIN)) {
       overlay.classList.remove('show');
       overlayShownAt = 0;
-      // vždy zajistíme, že grid bude opět interaktivní
       grid.style.pointerEvents = "auto";
       clearHoverStates();
     }
@@ -543,20 +522,28 @@ function sendOrQueue(payload){
   }
   flushBox();
 }
+
 function vote(value){
   if(!canVote()) return;
   startCooldown(); showThanks();
   const payload = { time:new Date().toISOString(), value:Number(value), kiosk:"Bouda-kiosek-Mercury", question:"Ohodnoť dnešní nákup" };
   sendOrQueue(payload);
 }
-document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click', ()=> vote(b.dataset.value), {passive:true}));
 
+document.querySelectorAll('.btn').forEach(b=> 
+  b.addEventListener('click', ()=> vote(b.dataset.value), {passive:true})
+);
 /*** Fullscreen + WakeLock po prvním kliknutí ***/
 async function enterFullscreenAndWake() {
-  try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); } catch(_) {}
+  try { 
+    if (!document.fullscreenElement) 
+      await document.documentElement.requestFullscreen(); 
+  } catch(_) {}
+
   try {
     if ('wakeLock' in navigator) {
       window._wl = await navigator.wakeLock.request('screen');
+
       document.addEventListener('visibilitychange', async ()=>{
         if (document.visibilityState === 'visible') {
           try { window._wl = await navigator.wakeLock.request('screen'); } catch(_){}
@@ -565,24 +552,28 @@ async function enterFullscreenAndWake() {
     }
   } catch(_) {}
 }
+
 document.addEventListener('click', function once(){
   enterFullscreenAndWake();
   document.removeEventListener('click', once, {capture:true});
 }, {capture:true, once:true});
 
-/*** PWA: registrace SW ***/
+/*** PWA: registrace SW (opravená cesta pro GitHub Pages) ***/
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  navigator.serviceWorker.register('/bouda-kiosk-mercury/sw.js?v=1', { scope: '/bouda-kiosk-mercury/' })
+    .catch(()=>{});
 }
 
 /*** PWA: tlačítko „Instalovat" ***/
 let defPrompt;
 const installBtn = document.getElementById('installBtn');
+
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   defPrompt = e;
   installBtn.style.display = 'block';
 });
+
 installBtn.addEventListener('click', async ()=>{
   if(!defPrompt) return;
   defPrompt.prompt();
@@ -594,16 +585,26 @@ installBtn.addEventListener('click', async ()=>{
 /*** první tichý flush po startu ***/
 flushBox();
 
-/*** Dynamické face1–face5 (fallback na emoji) s timeoutem pro obrázky ***/
+/*** Dynamické face1–face5 (fallback na emoji) + timeouty při načítání obrázků ***/
 (function setupFaces(){
   const exts = ['.png','.webp','.jpg','.jpeg','.svg'];
+
   function loadImageWithTimeout(src, timeout = 3000) {
     return new Promise((resolve) => {
       const img = new Image();
       let done = false;
-      const t = setTimeout(()=> { if(!done){ done = true; resolve(false); } }, timeout);
-      img.onload = ()=> { if(!done){ done = true; clearTimeout(t); resolve(true); } };
-      img.onerror = ()=> { if(!done){ done = true; clearTimeout(t); resolve(false); } };
+
+      const t = setTimeout(()=> {
+        if(!done){ done = true; resolve(false); }
+      }, timeout);
+
+      img.onload = ()=> { 
+        if(!done){ done = true; clearTimeout(t); resolve(true); } 
+      };
+      img.onerror = ()=> { 
+        if(!done){ done = true; clearTimeout(t); resolve(false); } 
+      };
+
       img.src = src;
     });
   }
@@ -617,6 +618,7 @@ flushBox();
       for(const ext of exts){
         const src = `face${val}${ext}`;
         const ok = await loadImageWithTimeout(src, 2500);
+
         if(ok){
           const imgEl = document.createElement('img');
           imgEl.src = src;
@@ -626,54 +628,49 @@ flushBox();
           break;
         }
       }
-      // když nic nenajdeme, emoji zůstane
+      // když nic nenajdeme → emoji zůstane
     })();
   });
 })();
 </script>
 
 <script>
-/* ===== UI-only helpers: spolehlivě přidáme/odebereme .hover/.active podle pointer událostí.
-   To je bezpečný UI patch — nic z obchodní logiky to nemění. ===== */
+/* ===== UI-only helpers (hover/active stabilizace) ===== */
 
 (function uiPointerStates(){
   const buttons = document.querySelectorAll('.btn');
 
   buttons.forEach(btn=>{
-    // pointerdown -> aktivní
-    btn.addEventListener('pointerdown', (e)=>{
+    btn.addEventListener('pointerdown', ()=>{
       btn.classList.add('active');
-      // remove potential hover to avoid conflict when pressing
       btn.classList.remove('hover');
     }, {passive:true});
 
-    // pointerup + pointercancel -> remove active
     btn.addEventListener('pointerup', ()=> btn.classList.remove('active'), {passive:true});
     btn.addEventListener('pointercancel', ()=> btn.classList.remove('active'), {passive:true});
-    btn.addEventListener('pointerout', ()=> {
-      // pokud ukazatel opustí prvek, smaž hover + active
+    btn.addEventListener('pointerout', ()=>{
       btn.classList.remove('hover');
       btn.classList.remove('active');
     }, {passive:true});
 
-    // pointerover -> hover (works for mouse + stylus; on touch it usually doesn't fire)
     btn.addEventListener('pointerover', ()=> btn.classList.add('hover'), {passive:true});
-    btn.addEventListener('pointerleave', ()=> {
+    btn.addEventListener('pointerleave', ()=>{
       btn.classList.remove('hover');
       btn.classList.remove('active');
     }, {passive:true});
 
-    // focus/blur fallback (keyboard / accessibility)
     btn.addEventListener('focus', ()=> btn.classList.add('hover'));
-    btn.addEventListener('blur', ()=> { btn.classList.remove('hover'); btn.classList.remove('active'); });
+    btn.addEventListener('blur', ()=> {
+      btn.classList.remove('hover');
+      btn.classList.remove('active');
+    });
   });
 
-  // Extra safety: if any persistent :hover-like styles remain due to platform, clear them on touchend globally
-  window.addEventListener('touchend', ()=> setTimeout(()=> {
-    document.querySelectorAll('.btn.hover, .btn.active').forEach(b=> { b.classList.remove('hover'); b.classList.remove('active'); });
+  window.addEventListener('touchend', ()=> setTimeout(()=>{
+    document.querySelectorAll('.btn.hover, .btn.active')
+      .forEach(b=> { b.classList.remove('hover'); b.classList.remove('active'); });
   }, 20), {passive:true});
 })();
-
 /* ========= ostatní původní scripts (back lock atd.) jsou beze změny; duplicitní bloky byly odstraněny ========= */
 
 // 1) Zruš context menu, výběr, drag & drop
