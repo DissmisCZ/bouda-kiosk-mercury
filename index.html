@@ -7,7 +7,7 @@
   <title>Bouda Feedback Kiosk</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat“) */
+    /* Zákaz výběru a dlouhého podržení (blokuje „Vyhledat") */
     html, body, * {
       -webkit-user-select: none !important;
       user-select: none !important;
@@ -373,8 +373,8 @@ const isStandalone = window.matchMedia('(display-mode: standalone)').matches
   }
 })();
 
-/* 2) Pevné „vycpání“ historie (2 položky) a tvrdé vracení vpřed */
-function hardenBackLock() {
+/* 2) Pevné „vycpání" historie (2 položky) a tvrdé vracení vpřed */
+function hardenBackLockOnce() {
   try {
     if (!sessionStorage.getItem('backArmed')) {
       history.pushState({b:1}, '');
@@ -382,14 +382,8 @@ function hardenBackLock() {
       sessionStorage.setItem('backArmed','1');
     }
   } catch(_) {}
-  window.addEventListener('popstate', (e)=>{
-    // nedovolit odejít zpět – skoč rovnou dopředu
-    try { history.go(1); } catch(_) {}
-    // pro jistotu historii zase „dotuč“
-    try { history.pushState({b:3}, ''); } catch(_) {}
-  });
 }
-window.addEventListener('load', hardenBackLock);
+window.addEventListener('load', hardenBackLockOnce);
 
 /* 3) Držet fullscreen vždy, když se appka zviditelní */
 async function ensureFullscreen() {
@@ -404,7 +398,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pageshow', () => {
   // po návratu z BFCache znovu vycpeme historii a fullscreen
-  hardenBackLock();
+  hardenBackLockOnce();
   ensureFullscreen();
 });
 
@@ -415,19 +409,19 @@ document.addEventListener('pointerdown', ()=> lastUserTick = performance.now(), 
 document.addEventListener('keydown',     ()=> lastUserTick = performance.now(), {passive:true});
 
 function softRecover(){
-  // Pokud jsme „viditelní“, ale UI není interaktivní, přepíšeme url zpět na #home
+  // Pokud jsme „viditelní", ale UI není interaktivní, přepíšeme url zpět na #home
   if (document.visibilityState === 'visible' && document.readyState !== 'loading') {
     if (!location.hash || location.hash !== '#home') {
       history.replaceState(null, '', location.pathname + '#home');
     }
-    hardenBackLock();
+    hardenBackLockOnce();
     ensureFullscreen();
   }
 }
 document.addEventListener('visibilitychange', softRecover);
 setInterval(softRecover, 1200); // jemný watchdog každých ~1.2 s
 
-/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět“ v některých klávesnicích */
+/* 5) (Volitelné) Zablokovat Backspace/Escape jako „zpět" v některých klávesnicích */
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Backspace' || e.key === 'Escape') {
     e.preventDefault();
@@ -449,26 +443,41 @@ const readBox = () => JSON.parse(localStorage.getItem(BOX_KEY) || "[]");
 const writeBox = (v)=> localStorage.setItem(BOX_KEY, JSON.stringify(v));
 
 let flushing = false;
+
+// helper: fetch s timeout
+function fetchWithTimeout(url, opts = {}, timeout = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  const finalOpts = Object.assign({}, opts, { signal: controller.signal });
+  return fetch(url, finalOpts).finally(() => clearTimeout(id));
+}
+
 async function flushBox(){
   if(flushing || !navigator.onLine) return;
   const box = readBox(); if(!box.length) return;
   flushing = true;
   try{
+    // pracujeme na kopii pole; pokud selže 1. request, přerušíme loop (vyhneme se tight-loop)
     while(box.length && navigator.onLine){
       const p = box[0];
-      await fetch(WEBHOOK_URL, {
-        method:"POST", mode:"no-cors",
-        headers:{ "Content-Type":"text/plain" },
-        body: JSON.stringify(p), keepalive:true
-      });
-      box.shift(); writeBox(box);
+      try{
+        await fetchWithTimeout(WEBHOOK_URL, {
+          method:"POST", mode:"no-cors",
+          headers:{ "Content-Type":"text/plain" },
+          body: JSON.stringify(p), keepalive:true
+        }, 8000);
+        box.shift(); writeBox(box);
+      } catch(err){
+        // pokud fetch selže (včetně abortu), opustíme cyklus — pokus bude znovu při "online" nebo dalším flushu
+        break;
+      }
     }
-  }catch(_){}
-  finally{ flushing = false; }
+  }catch(_){
+  } finally{ flushing = false; }
 }
 window.addEventListener("online", flushBox);
 
-/*** „Děkujeme“ + cooldown ***/
+/*** „Děkujeme" + cooldown + robustní watchdog (prevent stuck overlay) ***/
 const overlay = document.getElementById('overlay');
 const grid    = document.getElementById('grid');
 let cooldownUntil = 0;
@@ -492,18 +501,43 @@ function startCooldown(){
     clearHoverStates();
   }, COOLDOWN_MS);
 }
-function showThanks(){ overlay.classList.add('show'); setTimeout(()=> overlay.classList.remove('show'), THANKS_MS); }
+
+// Robustní thanks/watchdog
+const OVERLAY_STUCK_MARGIN = 2000; // ms tolerance navíc
+let overlayShownAt = 0;
+function showThanks(){
+  overlay.classList.add('show');
+  overlayShownAt = Date.now();
+  // původní timeout (zachováme pro normální chování)
+  setTimeout(()=> {
+    overlay.classList.remove('show');
+    overlayShownAt = 0;
+  }, THANKS_MS);
+}
+
+// watchdog, který zajistí odejmutí overlay i když jsou timery throttled
+setInterval(()=> {
+  try {
+    if (overlayShownAt && Date.now() - overlayShownAt > (THANKS_MS + OVERLAY_STUCK_MARGIN)) {
+      overlay.classList.remove('show');
+      overlayShownAt = 0;
+      // vždy zajistíme, že grid bude opět interaktivní
+      grid.style.pointerEvents = "auto";
+      clearHoverStates();
+    }
+  } catch(_) {}
+}, 2000);
 
 /*** Hlasování ***/
 function sendOrQueue(payload){
   if(!navigator.onLine){
     const b = readBox(); b.push(payload); writeBox(b);
   } else {
-    fetch(WEBHOOK_URL, {
+    fetchWithTimeout(WEBHOOK_URL, {
       method:"POST", mode:"no-cors",
       headers:{ "Content-Type":"text/plain" },
       body: JSON.stringify(payload), keepalive:true
-    }).catch(() => {
+    }, 7000).catch(() => {
       const b = readBox(); b.push(payload); writeBox(b);
     });
   }
@@ -541,7 +575,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
 
-/*** PWA: tlačítko „Instalovat“ ***/
+/*** PWA: tlačítko „Instalovat" ***/
 let defPrompt;
 const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', (e)=>{
@@ -560,9 +594,20 @@ installBtn.addEventListener('click', async ()=>{
 /*** první tichý flush po startu ***/
 flushBox();
 
-/*** Dynamické face1–face5 (fallback na emoji) ***/
+/*** Dynamické face1–face5 (fallback na emoji) s timeoutem pro obrázky ***/
 (function setupFaces(){
   const exts = ['.png','.webp','.jpg','.jpeg','.svg'];
+  function loadImageWithTimeout(src, timeout = 3000) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      let done = false;
+      const t = setTimeout(()=> { if(!done){ done = true; resolve(false); } }, timeout);
+      img.onload = ()=> { if(!done){ done = true; clearTimeout(t); resolve(true); } };
+      img.onerror = ()=> { if(!done){ done = true; clearTimeout(t); resolve(false); } };
+      img.src = src;
+    });
+  }
+
   document.querySelectorAll('.btn').forEach(btn=>{
     const val = btn.dataset.value;
     const emojiSpan = btn.querySelector('.emoji');
@@ -571,12 +616,7 @@ flushBox();
     (async () => {
       for(const ext of exts){
         const src = `face${val}${ext}`;
-        const ok = await new Promise(res=>{
-          const img = new Image();
-          img.onload = ()=>res(true);
-          img.onerror = ()=>res(false);
-          img.src = src;
-        });
+        const ok = await loadImageWithTimeout(src, 2500);
         if(ok){
           const imgEl = document.createElement('img');
           imgEl.src = src;
@@ -634,7 +674,7 @@ flushBox();
   }, 20), {passive:true});
 })();
 
-/* ========= ostatní původní scripts (back lock atd.) jsou beze změny ========= */
+/* ========= ostatní původní scripts (back lock atd.) jsou beze změny; duplicitní bloky byly odstraněny ========= */
 
 // 1) Zruš context menu, výběr, drag & drop
 addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
@@ -650,18 +690,6 @@ addEventListener('click', e => {
   if (a) e.preventDefault();
 }, {capture:true});
 window.open = function(){ return null; };
-
-// 3) Tvrdé „Back lock“ + auto-recovery (doplněno níže v originálním scriptu, ale řazeno zde jako safety)
-(function(){
-  try { for (let i=0;i<8;i++) history.pushState({k:i}, ''); } catch(_){}
-  addEventListener('popstate', e=>{ try{ history.go(1); }catch(_){ } }, {capture:true});
-  if (!location.hash) { try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ } }
-  const recover=()=>{ if (document.visibilityState==='visible') {
-    try { history.replaceState(null, '', location.pathname + '#home'); } catch(_){ }
-  }};
-  addEventListener('visibilitychange', recover);
-  setInterval(recover, 1000);
-})();
 
 </script>
 
