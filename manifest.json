@@ -1,8 +1,8 @@
 {
   "name": "Bouda Kiosk",
   "short_name": "Bouda",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/bouda-kiosk-mercury/",
+  "scope": "/bouda-kiosk-mercury/",
   "display": "fullscreen",
   "background_color": "#000000",
   "theme_color": "#000000",
